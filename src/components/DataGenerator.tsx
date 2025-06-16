@@ -20,17 +20,23 @@ import {
   ButtonGroup,
   useTheme,
   useMediaQuery,
+  Card,
+  CardContent,
+  Divider,
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
   Download as DownloadIcon,
   ContentCopy as CopyIcon,
   Refresh as GenerateIcon,
+  Info as InfoIcon,
 } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSchemas, useGenerateData } from '@/hooks/useSchemas';
+import { GenerationProgress } from '@/types/generation';
+import GenerationProgressComponent from './GenerationProgress';
 
 const generateSchema = z.object({
   schemaId: z.string().min(1, 'Please select a schema'),
@@ -46,6 +52,14 @@ export default function DataGenerator() {
   
   const [generatedData, setGeneratedData] = useState<Record<string, unknown>[]>([]);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [currentProgress, setCurrentProgress] = useState<GenerationProgress | null>(null);
+  const [generationMetadata, setGenerationMetadata] = useState<{
+    totalFields: number;
+    validFields: number;
+    regeneratedFields: string[];
+    attempts: number;
+    generationTime: number;
+  } | null>(null);
 
   const { data: schemas = [], isLoading: schemasLoading } = useSchemas();
   const generateData = useGenerateData();
@@ -71,14 +85,34 @@ export default function DataGenerator() {
     if (!selectedSchema) return;
 
     try {
+      setCurrentProgress(null);
+      setGenerationMetadata(null);
+
       const result = await generateData.mutateAsync({
         schema: selectedSchema.structure,
         prompt: data.prompt,
         count: data.count,
+        onProgress: setCurrentProgress,
       });
-      setGeneratedData(result.data || []);
+
+      if (result.success && result.data) {
+        setGeneratedData(result.data);
+        setGenerationMetadata(result.metadata || null);
+        setCurrentProgress({
+          stage: 'completed',
+          message: 'Data generation completed successfully!',
+          progress: 100
+        });
+      } else {
+        throw new Error(result.errors?.[0] || 'Generation failed');
+      }
     } catch (error) {
       console.error('Generation failed:', error);
+      setCurrentProgress({
+        stage: 'failed',
+        message: error instanceof Error ? error.message : 'Generation failed',
+        progress: 0
+      });
     }
   };
 
@@ -220,9 +254,56 @@ export default function DataGenerator() {
             </Button>
           </form>
 
+          {/* Progress Display */}
+          {currentProgress && (
+            <Box sx={{ mt: 3 }}>
+              <GenerationProgressComponent
+                progress={currentProgress}
+                showDetails={true}
+              />
+            </Box>
+          )}
+
+          {/* Generation Results Summary */}
+          {generationMetadata && (
+            <Card sx={{ mt: 2 }}>
+              <CardContent sx={{ py: 2 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Generation Summary
+                </Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 1 }}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Total Fields</Typography>
+                    <Typography variant="body2" fontWeight="medium">{generationMetadata.totalFields}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Valid Fields</Typography>
+                    <Typography variant="body2" fontWeight="medium">{generationMetadata.validFields}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Attempts</Typography>
+                    <Typography variant="body2" fontWeight="medium">{generationMetadata.attempts}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Time</Typography>
+                    <Typography variant="body2" fontWeight="medium">{(generationMetadata.generationTime / 1000).toFixed(1)}s</Typography>
+                  </Box>
+                </Box>
+                {generationMetadata.regeneratedFields.length > 0 && (
+                  <Box sx={{ mt: 1 }}>
+                    <Typography variant="caption" color="text.secondary">Regenerated Fields:</Typography>
+                    <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                      {generationMetadata.regeneratedFields.join(', ')}
+                    </Typography>
+                  </Box>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {generateData.isError && (
             <Alert severity="error" sx={{ mt: 2 }}>
-              Failed to generate data. Please check your prompt and try again.
+              {generateData.error instanceof Error ? generateData.error.message : 'Failed to generate data'}
             </Alert>
           )}
 
@@ -299,11 +380,22 @@ export default function DataGenerator() {
           </Box>
 
           {generatedData.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">
-              No data generated yet. Select a schema and provide a prompt to generate data.
-            </Typography>
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <InfoIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+              <Typography variant="body2" color="text.secondary">
+                No data generated yet. Select a schema and provide a prompt to generate data.
+              </Typography>
+              {currentProgress?.stage === 'failed' && (
+                <Alert severity="error" sx={{ mt: 2, textAlign: 'left' }}>
+                  <Typography variant="body2">
+                    Generation failed. Please check your schema and prompt, then try again.
+                  </Typography>
+                </Alert>
+              )}
+            </Box>
           ) : (
-            <Box>
+            <Box sx={{width: '100%'}}>
+              <Divider sx={{ mb: 2 }} />
               {generatedData.map((record, index) => (
                 <Accordion key={index} sx={{ mb: 1 }}>
                   <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -323,6 +415,7 @@ export default function DataGenerator() {
                           overflow: 'auto',
                           flexGrow: 1,
                           mr: 1,
+                          maxHeight: '300px',
                         }}
                       >
                         {JSON.stringify(record, null, 2)}

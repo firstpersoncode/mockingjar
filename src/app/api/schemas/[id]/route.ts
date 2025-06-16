@@ -59,7 +59,7 @@ export async function PUT(
       data: {
         name: body.name,
         description: body.description,
-        structure: body,
+        structure: JSON.parse(JSON.stringify(body)),
       },
     });
 

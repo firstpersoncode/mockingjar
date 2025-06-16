@@ -12,7 +12,7 @@ export default function HomePage() {
     if (status === 'loading') return;
     
     if (session) {
-      router.push('/builder');
+      router.push('/schema');
     } else {
       router.push('/auth/signin');
     }

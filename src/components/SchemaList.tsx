@@ -65,14 +65,14 @@ export default function SchemaList() {
       setNewSchemaName('');
       setNewSchemaDescription('');
       // Navigate to the new schema builder
-      router.push(`/builder/${result.id}`);
+      router.push(`/schema/${result.id}`);
     } catch (error) {
       console.error('Failed to create schema:', error);
     }
   };
 
   const handleEditSchema = (schemaId: string) => {
-    router.push(`/builder/${schemaId}`);
+    router.push(`/schema/${schemaId}`);
     handleMenuClose();
   };
 

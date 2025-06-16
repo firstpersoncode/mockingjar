@@ -2,29 +2,34 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { 
-  Box, 
-  Typography, 
-  CircularProgress, 
+import {
+  Box,
+  CircularProgress,
   Alert,
-  AppBar,
-  Toolbar,
-  IconButton,
 } from '@mui/material';
-import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import SchemaBuilder from '@/components/SchemaBuilder';
-import { useGetSchema, useSaveSchema, useUpdateSchema } from '@/hooks/useSchemas';
+import {
+  useGetSchema,
+  useSaveSchema,
+  useUpdateSchema,
+} from '@/hooks/useSchemas';
 import { JsonSchema } from '@/types/schema';
+import AppBar from '@/components/AppBar';
 
 export default function SchemaBuilderPage() {
   const router = useRouter();
   const params = useParams();
   const schemaId = params.id as string;
-  
-  const { data: savedSchema, isLoading, isFetched, error } = useGetSchema(schemaId);
+
+  const {
+    data: savedSchema,
+    isLoading,
+    isFetched,
+    error,
+  } = useGetSchema(schemaId);
   const saveSchema = useSaveSchema();
   const updateSchema = useUpdateSchema();
-  
+
   const [isNewSchema, setIsNewSchema] = useState(false);
   const [saveError, setSaveError] = useState<string | undefined>(undefined);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -45,13 +50,13 @@ export default function SchemaBuilderPage() {
   const handleSave = async (schema: JsonSchema) => {
     try {
       setSaveError(undefined);
-      
+
       if (isNewSchema) {
         // Create new schema
         const result = await saveSchema.mutateAsync(schema);
         setSaveSuccess(true);
         // Navigate to the new schema's edit page
-        router.replace(`/builder/${result.id}`);
+        router.replace(`/schema/${result.id}`);
         setIsNewSchema(false);
       } else {
         // Update existing schema
@@ -59,7 +64,9 @@ export default function SchemaBuilderPage() {
         setSaveSuccess(true);
       }
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Failed to save schema');
+      setSaveError(
+        error instanceof Error ? error.message : 'Failed to save schema'
+      );
     }
   };
 
@@ -87,14 +94,14 @@ export default function SchemaBuilderPage() {
 
     try {
       setIsUpdatingName(true);
-      
+
       // Use the current schema state instead of savedSchema.structure
       // This preserves any unsaved changes the user has made
       const updatedSchema: JsonSchema = {
         ...currentSchema,
         name: name,
       };
-      
+
       // Update the schema in the database
       await updateSchema.mutateAsync({ id: schemaId, schema: updatedSchema });
     } catch (error) {
@@ -107,12 +114,17 @@ export default function SchemaBuilderPage() {
   };
 
   const handleBack = () => {
-    router.push('/builder');
+    router.push('/schema');
   };
 
   if (isLoading && !isNewSchema) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+      <Box
+        display='flex'
+        justifyContent='center'
+        alignItems='center'
+        minHeight='100vh'
+      >
         <CircularProgress />
       </Box>
     );
@@ -121,75 +133,30 @@ export default function SchemaBuilderPage() {
   if (error && !isNewSchema) {
     return (
       <Box sx={{ p: 3 }}>
-        <AppBar position="static" sx={{ mb: 3 }}>
-          <Toolbar>
-            <IconButton
-              edge="start"
-              color="inherit"
-              onClick={handleBack}
-              sx={{ mr: 2 }}
-            >
-              <ArrowBackIcon />
-            </IconButton>
-            <Typography variant="h6">
-              Error Loading Schema
-            </Typography>
-          </Toolbar>
-        </AppBar>
-        
-        <Alert severity="error">
+        <AppBar title='Error Loading Schema' onBack={handleBack} />
+
+        <Alert severity='error'>
           Failed to load schema. Please try again or go back to the schema list.
         </Alert>
       </Box>
     );
   }
 
-  const initialSchema = isNewSchema 
-    ? { name: 'New Schema', description: '', fields: [] }
-    : savedSchema?.structure;
-
-  const pageTitle = isNewSchema 
-    ? 'Create New Schema' 
+  const pageTitle = isNewSchema
+    ? 'Create New Schema'
     : `Edit: ${savedSchema?.name || 'Loading...'}`;
 
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <AppBar position="static">
-        <Toolbar>
-          <IconButton
-            edge="start"
-            color="inherit"
-            onClick={handleBack}
-            sx={{ mr: 2 }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            {pageTitle}
-          </Typography>
-          
-          {saveSuccess && (
-            <Alert 
-              severity="success" 
-              sx={{ 
-                py: 0.5, 
-                px: 2, 
-                backgroundColor: 'success.light',
-                color: 'success.contrastText',
-                '& .MuiAlert-icon': {
-                  color: 'success.contrastText',
-                }
-              }}
-            >
-              Schema saved successfully!
-            </Alert>
-          )}
-        </Toolbar>
-      </AppBar>
+      <AppBar title={pageTitle} onBack={handleBack} />
 
       <Box sx={{ flexGrow: 1, overflow: 'auto', p: 3 }}>
         {saveError && (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setSaveError(undefined)}>
+          <Alert
+            severity='error'
+            sx={{ mb: 2 }}
+            onClose={() => setSaveError(undefined)}
+          >
             {saveError}
           </Alert>
         )}
@@ -207,7 +174,12 @@ export default function SchemaBuilderPage() {
             saveSuccess={saveSuccess}
           />
         ) : (
-          <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+          <Box
+            display='flex'
+            justifyContent='center'
+            alignItems='center'
+            minHeight='400px'
+          >
             <CircularProgress />
           </Box>
         )}

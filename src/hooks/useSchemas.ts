@@ -1,5 +1,27 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { JsonSchema, SavedSchema } from '@/types/schema';
+import { GenerationProgress } from '@/types/generation';
+
+export interface GenerateDataParams {
+  schema: JsonSchema;
+  prompt: string;
+  count: number;
+  onProgress?: (progress: GenerationProgress) => void;
+}
+
+export interface GenerateDataResult {
+  success: boolean;
+  data?: Record<string, unknown>[];
+  metadata?: {
+    totalFields: number;
+    validFields: number;
+    regeneratedFields: string[];
+    attempts: number;
+    generationTime: number;
+  };
+  progressSteps?: GenerationProgress[];
+  errors?: string[];
+}
 
 export function useSchemas() {
   return useQuery({
@@ -85,18 +107,43 @@ export function useGenerateData() {
       schema,
       prompt,
       count,
-    }: {
-      schema: JsonSchema;
-      prompt: string;
-      count: number;
-    }) => {
+      onProgress,
+    }: GenerateDataParams): Promise<GenerateDataResult> => {
+      // Simulate progress for UI responsiveness
+      onProgress?.({
+        stage: 'preparing',
+        message: 'Preparing generation request...',
+        progress: 0
+      });
+
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ schema, prompt, count }),
       });
-      if (!response.ok) throw new Error('Failed to generate data');
-      return response.json();
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate data');
+      }
+
+      const result: GenerateDataResult = await response.json();
+
+      // Replay progress steps for UI
+      if (result.progressSteps && onProgress) {
+        for (const step of result.progressSteps) {
+          onProgress(step);
+          // Small delay to show progress
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+
+      return result;
     },
+    retry: (failureCount, error) => {
+      // Retry up to 2 times for network errors, but not for validation errors
+      return failureCount < 2 && !error.message.includes('validation');
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 }

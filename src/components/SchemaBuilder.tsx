@@ -425,7 +425,6 @@ export default function SchemaBuilder({
                   fontSize: '0.75rem',
                   '& .MuiSelect-select': { py: 0.25, px: 1 },
                   '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                  backgroundColor: 'secondary.50',
                   borderRadius: 1,
                   minHeight: '20px',
                   backgroundColor: "#fff"

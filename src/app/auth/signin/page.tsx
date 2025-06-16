@@ -53,10 +53,10 @@ export default function SignInPage() {
       } else {
         // Refresh session and redirect
         await getSession();
-        router.push('/builder');
+        router.push('/schema');
       }
-    } catch (err) {
-      setError('An error occurred. Please try again.');
+    } catch (err: unknown) {
+      setError('An error occurred. Please try again.' + (err instanceof Error ? `: ${err.message}` : ''));
     } finally {
       setLoading(false);
     }
@@ -92,7 +92,7 @@ export default function SignInPage() {
                   fontSize: { xs: '1.75rem', sm: '2.125rem' },
                 }}
               >
-                JSON Builder
+                MockingJar
               </Typography>
               <Typography 
                 variant="body1" 

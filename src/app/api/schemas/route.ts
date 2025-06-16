@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       data: {
         name: body.name,
         description: body.description,
-        structure: body,
+        structure: JSON.parse(JSON.stringify(body)),
         userId: session.user.id,
       },
     });

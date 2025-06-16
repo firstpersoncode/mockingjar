@@ -476,22 +476,60 @@ export const theme = createTheme({
 7. Implement schema save/load functionality with React Query mutations
 
 ### Phase 3: AI Integration with React Query (Week 5-6)
-**Goals**: Claude integration with proper API state management
+**Goals**:  
+Enable the generation of structured data that adheres exactly to user-defined JSON schemas using prompt-based input and AI (Anthropic Claude), ensuring validity, reliability, and schema conformance. Leverage a **hybrid generation strategy**: attempt whole-structure generation first, then fall back to partial (field-level) repair on validation failure.
 **Deliverables**:
-- Anthropic API integration with React Query
-- MUI prompt interface with loading states
-- Data generation pipeline with error handling
-- Optimistic updates and caching strategies
+- Anthropic Claude API integrated with React Query  
+- Hybrid AI data generation engine with schema-first fallback logic  
+- Schema-based JSON validation pipeline (AJV or equivalent)  
+- Resilient data generation API endpoint with fallback and batching  
+- MUI prompt interface connected to generation engine with real-time feedback  
+- React Query hooks with state tracking, caching, and retry mechanisms  
+- Generation progress UI with Skeleton/LinearProgress  
+- Field-specific error feedback and recovery options in the UI  
 
 **Tasks**:
-1. Set up Anthropic Claude SDK
-2. Create React Query hooks for data generation
-3. Design prompt engineering system
-4. Implement data generation API endpoint
-5. Create MUI prompt interface with TextField and progress indicators
-6. Add generation progress with MUI LinearProgress and Skeleton
-7. Implement error handling with MUI Alert components and retry logic
-8. Add data validation and formatting with React Query success/error callbacks
+1. **Set up Anthropic Claude SDK**
+   - Integrate Claude API using secure API keys
+   - Abstract API into a ClaudeService module for easy reuse
+2. **Create React Query hooks for data generation**
+   - `useGenerateData`: mutation hook to call backend generation endpoint
+   - Handle `onSuccess`, `onError`, `onSettled` for proper UI feedback
+   - Include cancellation and retry support
+3. **Design prompt engineering system (Hybrid Strategy)**
+   - Define base prompt structure for full-object generation
+   - Create fallback prompt templates for common field types (`string`, `object`, `array`)
+   - Enable contextual prompt generation using parent/related fields
+4. **Implement data generation API endpoint using schema structure**
+   - Accept `{ schema, userPrompt }` in POST body
+   - Step 1: Try full-schema generation
+   - Step 2: Validate output using JSON Schema (AJV)
+   - Step 3: If invalid → identify failing fields
+   - Step 4: Regenerate failed fields in batches using field-level prompting
+   - Step 5: Recombine valid parts into a final JSON object
+5. **Implement all validations using field-type validation rules**
+   - Use AJV to enforce:
+     - Type correctness
+     - Required fields
+     - Format checks (`email`, `date-time`, etc.)
+     - Pattern, enum, min/max constraints
+   - Normalize/sanitize known common errors (e.g., convert stringified numbers)
+6. **Create MUI prompt interface with TextField and progress indicators**
+   - Use existing prompt input UI
+   - Connect `onSubmit` to generation hook
+   - Show loading states on generate request start
+7. **Add generation progress UI with MUI LinearProgress and Skeleton**
+   - Show progress bar during full-object generation
+   - If falling back to field-level generation, show per-field skeleton loaders
+   - Include intermediate generation state in the UI
+8. **Implement error handling with MUI Alert components and retry logic**
+   - Display generation or validation errors in a clear, user-friendly format
+   - Allow retrying the full prompt or specific fields
+   - Offer "edit manually" mode for failed JSON chunks
+9. **Add data validation and formatting with React Query callbacks**
+   - On success: display formatted JSON in viewer with collapsible sections
+   - Highlight any fields that required fallback regeneration
+   - Allow user to copy/download final structured data
 
 ### Phase 4: Data Management with Material UI (Week 7-8)
 **Goals**: Preview and export functionality with MUI components
