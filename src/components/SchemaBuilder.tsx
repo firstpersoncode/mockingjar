@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Box,
   Paper,
@@ -42,6 +42,7 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { SchemaField, JsonSchema } from '@/types/schema';
 import { findAndUpdateField, findAndRemoveField } from './utils/fieldUtils';
+import { createSchemaTemplates } from './utils/templateUtils';
 
 interface SchemaBuilderProps {
   initialSchema?: JsonSchema;
@@ -84,6 +85,9 @@ export default function SchemaBuilder({
   // State for managing collapsed/expanded state of object fields
   const [collapsedFields, setCollapsedFields] = useState<Set<string>>(new Set());
   
+  // Memoize schema templates to prevent recreation on every render
+  const schemaTemplates = useMemo(() => createSchemaTemplates(), []);
+  
   // Sync with initialSchema prop changes
   useEffect(() => {
     if (initialSchema) {
@@ -114,13 +118,13 @@ export default function SchemaBuilder({
     setEditingName(false);
   };
   
-  const selectField = (field: SchemaField) => {
+  const selectField = useCallback((field: SchemaField) => {
     setSelectedField(field);
     setFieldPropertiesDialogOpen(true);
-  };
+  }, []);
 
   // Toggle collapse state for a field (UI only)
-  const toggleFieldCollapse = (fieldId: string) => {
+  const toggleFieldCollapse = useCallback((fieldId: string) => {
     setCollapsedFields(prev => {
       const newSet = new Set(prev);
       if (newSet.has(fieldId)) {
@@ -130,110 +134,11 @@ export default function SchemaBuilder({
       }
       return newSet;
     });
-  };
+  }, []);
 
-  const schemaTemplates = {
-    user: {
-      name: 'User Profile',
-      fields: [
-        { id: uuidv4(), name: 'id', type: 'number' as const, logic: { required: true } } as SchemaField,
-        { id: uuidv4(), name: 'firstName', type: 'text' as const, logic: { required: true, minLength: 2, maxLength: 50 } } as SchemaField,
-        { id: uuidv4(), name: 'lastName', type: 'text' as const, logic: { required: true, minLength: 2, maxLength: 50 } } as SchemaField,
-        { id: uuidv4(), name: 'email', type: 'email' as const, logic: { required: true } } as SchemaField,
-        { id: uuidv4(), name: 'dateOfBirth', type: 'date' as const, logic: { required: false } } as SchemaField,
-        { id: uuidv4(), name: 'isActive', type: 'boolean' as const, logic: { required: true } } as SchemaField,
-      ]
-    },
-    product: {
-      name: 'E-commerce Product',
-      fields: [
-        { id: uuidv4(), name: 'id', type: 'number' as const, logic: { required: true } } as SchemaField,
-        { id: uuidv4(), name: 'name', type: 'text' as const, logic: { required: true, minLength: 3, maxLength: 100 } } as SchemaField,
-        { id: uuidv4(), name: 'description', type: 'text' as const, logic: { required: false, maxLength: 500 } } as SchemaField,
-        { id: uuidv4(), name: 'price', type: 'number' as const, logic: { required: true, min: 0 } } as SchemaField,
-        { id: uuidv4(), name: 'category', type: 'text' as const, logic: { required: true, enum: ['Electronics', 'Clothing', 'Books', 'Home', 'Sports'] } } as SchemaField,
-        { id: uuidv4(), name: 'inStock', type: 'boolean' as const, logic: { required: true } } as SchemaField,
-        { id: uuidv4(), name: 'tags', type: 'array' as const, arrayItemType: { 
-          id: uuidv4(), 
-          name: 'tag', 
-          type: 'object' as const,
-          children: [
-            { id: uuidv4(), name: 'name', type: 'text' as const, logic: { required: true } } as SchemaField,
-            { id: uuidv4(), name: 'color', type: 'text' as const, logic: { required: false, enum: ['red', 'blue', 'green', 'yellow'] } } as SchemaField,
-          ],
-          logic: { required: false }
-        } as SchemaField, logic: { minItems: 0, maxItems: 10 } } as SchemaField,
-      ]
-    },
-    address: {
-      name: 'Address',
-      fields: [
-        { id: uuidv4(), name: 'street', type: 'text' as const, logic: { required: true, minLength: 5, maxLength: 100 } } as SchemaField,
-        { id: uuidv4(), name: 'city', type: 'text' as const, logic: { required: true, minLength: 2, maxLength: 50 } } as SchemaField,
-        { id: uuidv4(), name: 'state', type: 'text' as const, logic: { required: true, minLength: 2, maxLength: 50 } } as SchemaField,
-        { id: uuidv4(), name: 'zipCode', type: 'text' as const, logic: { required: true, pattern: '^[0-9]{5}(-[0-9]{4})?$' } } as SchemaField,
-        { id: uuidv4(), name: 'country', type: 'text' as const, logic: { required: true, enum: ['USA', 'Canada', 'UK', 'Germany', 'France'] } } as SchemaField,
-      ]
-    },
-    blog: {
-      name: 'Blog Post',
-      fields: [
-        { id: uuidv4(), name: 'id', type: 'number' as const, logic: { required: true } } as SchemaField,
-        { id: uuidv4(), name: 'title', type: 'text' as const, logic: { required: true, minLength: 10, maxLength: 200 } } as SchemaField,
-        { id: uuidv4(), name: 'slug', type: 'text' as const, logic: { required: true, pattern: '^[a-z0-9-]+$' } } as SchemaField,
-        { id: uuidv4(), name: 'content', type: 'text' as const, logic: { required: true, minLength: 100 } } as SchemaField,
-        { id: uuidv4(), name: 'publishedAt', type: 'date' as const, logic: { required: false } } as SchemaField,
-        { id: uuidv4(), name: 'isPublished', type: 'boolean' as const, logic: { required: true } } as SchemaField,
-        { id: uuidv4(), name: 'author', type: 'object' as const, logic: { required: true }, children: [
-          { id: uuidv4(), name: 'name', type: 'text' as const, logic: { required: true } } as SchemaField,
-          { id: uuidv4(), name: 'email', type: 'email' as const, logic: { required: true } } as SchemaField,
-        ]} as SchemaField,
-        { id: uuidv4(), name: 'tags', type: 'array' as const, arrayItemType: { 
-          id: uuidv4(), 
-          name: 'tag', 
-          type: 'object' as const,
-          children: [
-            { id: uuidv4(), name: 'name', type: 'text' as const, logic: { required: true } } as SchemaField,
-            { id: uuidv4(), name: 'category', type: 'text' as const, logic: { required: false } } as SchemaField,
-            { id: uuidv4(), name: 'metadata', type: 'object' as const, logic: { required: false }, children: [
-              { id: uuidv4(), name: 'popularity', type: 'number' as const, logic: { required: false, min: 0, max: 100 } } as SchemaField,
-              { id: uuidv4(), name: 'related', type: 'array' as const, arrayItemType: {
-                id: uuidv4(),
-                name: 'relatedTag',
-                type: 'text' as const,
-                logic: { required: false }
-              } as SchemaField, logic: { minItems: 0, maxItems: 5 } } as SchemaField,
-            ]} as SchemaField,
-          ],
-          logic: { required: false }
-        } as SchemaField, logic: { minItems: 1, maxItems: 5 } } as SchemaField,
-      ]
-    },
-    nestedArrays: {
-      name: 'Nested Arrays Test',
-      fields: [
-        { id: uuidv4(), name: 'id', type: 'number' as const, logic: { required: true } } as SchemaField,
-        { id: uuidv4(), name: 'departments', type: 'array' as const, arrayItemType: {
-          id: uuidv4(),
-          name: 'department',
-          type: 'array' as const,
-          arrayItemType: {
-            id: uuidv4(),
-            name: 'employee',
-            type: 'object' as const,
-            children: [
-              { id: uuidv4(), name: 'name', type: 'text' as const, logic: { required: true } } as SchemaField,
-              { id: uuidv4(), name: 'role', type: 'text' as const, logic: { required: true } } as SchemaField,
-            ],
-            logic: { required: true }
-          } as SchemaField,
-          logic: { minItems: 1, maxItems: 10 }
-        } as SchemaField, logic: { minItems: 1, maxItems: 5 } } as SchemaField,
-      ]
-    }
-  };
+  // Memoize schema templates to prevent recreation on every render
 
-  const applyTemplate = (templateKey: keyof typeof schemaTemplates) => {
+  const applyTemplate = (templateKey: keyof ReturnType<typeof createSchemaTemplates>) => {
     const template = schemaTemplates[templateKey];
     setSchema({
       name: template.name,
@@ -243,28 +148,28 @@ export default function SchemaBuilder({
     setTemplateDialogOpen(false);
   };
 
-  const updateField = (updatedField: SchemaField) => {
+  const updateField = useCallback((updatedField: SchemaField) => {
     setSchema(prev => ({
       ...prev,
       fields: findAndUpdateField(prev.fields, updatedField.id, () => updatedField)
     }));
     setSelectedField(updatedField);
-  };
+  }, []);
 
-  const removeField = (fieldId: string) => {
+  const removeField = useCallback((fieldId: string) => {
     setSchema(prev => ({
       ...prev,
       fields: findAndRemoveField(prev.fields, fieldId)
     }));
     setSelectedField(null);
-  };
+  }, []);
 
-  const handleSaveSchema = () => {
+  const handleSaveSchema = useCallback(() => {
     onSave(schema);
-  };
+  }, [onSave, schema]);
 
   // Simple function to add a field directly to the schema (for tree view button)
-  const addFieldToTree = () => {
+  const addFieldToTree = useCallback(() => {
     const newField: SchemaField = {
       id: uuidv4(),
       name: 'newField',
@@ -276,9 +181,9 @@ export default function SchemaBuilder({
       ...prev,
       fields: [...prev.fields, newField],
     }));
-  };
+  }, []);
 
-  const generatePreview = (): Record<string, unknown> => {
+  const generatePreview = useMemo((): Record<string, unknown> => {
     const generateFieldPreview = (field: SchemaField): unknown => {
       switch (field.type) {
         case 'text':
@@ -355,15 +260,15 @@ export default function SchemaBuilder({
     });
     
     return preview;
-  };
+  }, [schema.fields, collapsedFields]);
 
-  const copyToClipboard = async (data: unknown) => {
+  const copyToClipboard = useCallback(async (data: unknown) => {
     try {
       await navigator.clipboard.writeText(JSON.stringify(data, null, 2));
     } catch (err) {
       console.error('Failed to copy to clipboard:', err);
     }
-  };
+  }, []);
 
   const renderArrayItemTree = (arrayItem: SchemaField, parentPath: string[], level: number): React.ReactNode => {
     if (arrayItem.type === 'object') {
@@ -1211,7 +1116,7 @@ export default function SchemaBuilder({
               alignItems="center"
             >
               <IconButton 
-                onClick={() => copyToClipboard(generatePreview())}
+                onClick={() => copyToClipboard(generatePreview)}
                 size={isMobile ? "small" : "medium"}
                 title="Copy to clipboard"
               >
@@ -1254,7 +1159,7 @@ export default function SchemaBuilder({
               maxHeight: 'calc(100% - 80px)',
             }}
           >
-            {JSON.stringify(generatePreview(), null, 2)}
+            {JSON.stringify(generatePreview, null, 2)}
           </Box>
 
           {saveError && (
@@ -1674,11 +1579,11 @@ export default function SchemaBuilder({
               fontFamily: 'monospace',
             }}
           >
-            {JSON.stringify(generatePreview(), null, 2)}
+            {JSON.stringify(generatePreview, null, 2)}
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => copyToClipboard(generatePreview())} startIcon={<PreviewIcon />}>
+          <Button onClick={() => copyToClipboard(generatePreview)} startIcon={<PreviewIcon />}>
             Copy to Clipboard
           </Button>
           <Button onClick={() => setJsonPreviewDialogOpen(false)}>Close</Button>
