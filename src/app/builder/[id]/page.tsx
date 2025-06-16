@@ -63,6 +63,22 @@ export default function SchemaBuilderPage() {
     }
   };
 
+  const handleUpdate = async (schema: JsonSchema) => {
+    // Skip auto-save for new schemas that haven't been saved yet
+    if (isNewSchema || !savedSchema) {
+      return;
+    }
+
+    try {
+      // Auto-save the schema changes to the database
+      await updateSchema.mutateAsync({ id: schemaId, schema });
+    } catch (error) {
+      console.error('Auto-save failed:', error);
+      // We don't show errors for auto-save to avoid noise
+      // The user can still manually save if needed
+    }
+  };
+
   const handleUpdateName = async (name: string, currentSchema: JsonSchema) => {
     if (isNewSchema || !savedSchema) {
       // For new schemas, we don't update the database until save
@@ -182,6 +198,7 @@ export default function SchemaBuilderPage() {
           <SchemaBuilder
             initialSchema={initialSchema}
             onSave={handleSave}
+            onUpdate={handleUpdate}
             onUpdateName={handleUpdateName}
             isSaving={saveSchema.isPending || updateSchema.isPending}
             isUpdatingName={isUpdatingName}
