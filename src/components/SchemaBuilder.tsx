@@ -352,12 +352,15 @@ export default function SchemaBuilder({
             display='flex'
             alignItems='center'
             gap={1}
-            py={0.5}
-            pl={level * 5}
+            py={1}
+            px={1}
+            ml={level * 5}
             sx={{
               cursor: 'pointer',
               '&:hover': { backgroundColor: 'action.hover' },
-              backgroundColor: 'grey.50',
+              backgroundColor: `rgba(0,0,0,${level * 0.015})`,
+              borderTopLeftRadius: 4,
+              borderBottomLeftRadius: 4,
             }}
           >
             <Box sx={{ width: 24 }} /> {/* Spacer for alignment */}
@@ -382,6 +385,7 @@ export default function SchemaBuilder({
                   marginRight: 0.5,
                   marginLeft: 0,
                 },
+                backgroundColor: "#fff"
               }}
             >
               {arrayItem.name} (array item)
@@ -424,6 +428,7 @@ export default function SchemaBuilder({
                   backgroundColor: 'secondary.50',
                   borderRadius: 1,
                   minHeight: '20px',
+                  backgroundColor: "#fff"
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -464,6 +469,7 @@ export default function SchemaBuilder({
                 borderStyle: 'dashed',
                 borderColor: 'grey.400',
                 color: 'grey.600',
+                backgroundColor: "#fff",
                 '&:hover': {
                   borderColor: 'grey.600',
                   backgroundColor: 'grey.50',
@@ -501,10 +507,13 @@ export default function SchemaBuilder({
             display='flex'
             alignItems='center'
             gap={1}
-            py={0.5}
-            pl={level * 5}
+            py={1}
+            px={1}
+            ml={level * 5}
             sx={{
-              backgroundColor: 'grey.100',
+              backgroundColor: `rgba(0,0,0,${level * 0.015})`,
+              borderTopLeftRadius: 4,
+              borderBottomLeftRadius: 4,
             }}
           >
             <Box sx={{ width: 24 }} /> {/* Spacer for alignment */}
@@ -530,6 +539,7 @@ export default function SchemaBuilder({
                   marginRight: 0.5,
                   marginLeft: 0,
                 },
+                backgroundColor: "#fff"
               }}
             >
               {arrayItem.name} (nested array)
@@ -582,9 +592,9 @@ export default function SchemaBuilder({
                   fontSize: '0.75rem',
                   '& .MuiSelect-select': { py: 0.25, px: 1 },
                   '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                  backgroundColor: 'info.50',
                   borderRadius: 1,
                   minHeight: '20px',
+                  backgroundColor: "#fff"
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -637,11 +647,15 @@ export default function SchemaBuilder({
             display='flex'
             alignItems='center'
             gap={1}
-            py={0.5}
-            pl={level * 5}
+            py={1}
+            px={1}
+            ml={level * 5}
             sx={{
               cursor: 'pointer',
               '&:hover': { backgroundColor: 'action.hover' },
+              backgroundColor: `rgba(0,0,0,${level * 0.015})`,
+              borderTopLeftRadius: 4,
+              borderBottomLeftRadius: 4,
             }}
           >
             {/* Collapsible arrow for fields with children */}
@@ -685,6 +699,7 @@ export default function SchemaBuilder({
                   marginRight: 0.5,
                   marginLeft: 0,
                 },
+                backgroundColor: "#fff"
               }}
             >
               {field.name}
@@ -725,10 +740,9 @@ export default function SchemaBuilder({
                   fontSize: '0.75rem',
                   '& .MuiSelect-select': { py: 0.25, px: 1 },
                   '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                  backgroundColor:
-                    parentPath.length > 0 ? 'grey.100' : 'primary.50',
                   borderRadius: 1,
                   minHeight: '20px',
+                  backgroundColor: "#fff"
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -771,6 +785,7 @@ export default function SchemaBuilder({
                   borderStyle: 'dashed',
                   color: 'text.secondary',
                   borderColor: 'divider',
+                  backgroundColor: "#fff",
                   '&:hover': {
                     borderColor: 'primary.main',
                     backgroundColor: 'action.hover',
@@ -826,12 +841,15 @@ export default function SchemaBuilder({
                 display='flex'
                 alignItems='center'
                 gap={1}
-                py={0.5}
-                pl={(level + 1) * 5}
+                py={1}
+                px={1}
+                ml={(level + 1) * 5}
                 sx={{
                   cursor: 'pointer',
                   '&:hover': { backgroundColor: 'action.hover' },
-                  backgroundColor: 'grey.50',
+                  backgroundColor: `rgba(0,0,0,${(level + 1) * 0.015})`,
+                  borderTopLeftRadius: 4,
+                  borderBottomLeftRadius: 4,
                 }}
               >
                 {/* Collapsible arrow for array items with children */}
@@ -878,6 +896,7 @@ export default function SchemaBuilder({
                       marginRight: 0.5,
                       marginLeft: 0,
                     },
+                    backgroundColor: "#fff"
                   }}
                 >
                   {field.arrayItemType?.name || 'item'} (array item)
@@ -924,7 +943,7 @@ export default function SchemaBuilder({
                       fontSize: '0.75rem',
                       '& .MuiSelect-select': { py: 0.25, px: 1 },
                       '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                      backgroundColor: 'secondary.50',
+                      backgroundColor: "#fff",
                       borderRadius: 1,
                       minHeight: '20px',
                     }}
@@ -976,6 +995,7 @@ export default function SchemaBuilder({
                       borderStyle: 'dashed',
                       borderColor: 'grey.400',
                       color: 'grey.600',
+                      backgroundColor: "#fff",
                       '&:hover': {
                         borderColor: 'grey.600',
                         backgroundColor: 'grey.50',
@@ -1079,7 +1099,7 @@ export default function SchemaBuilder({
       }}
     >
       {/* Schema Tree */}
-      <Box sx={{ flex: { lg: '1 1 50%' } }}>
+      <Box sx={{ flex: { lg: '1 1 60%' } }}>
         <Paper
           sx={{
             p: { xs: 1, sm: 2 },
@@ -1216,11 +1236,13 @@ export default function SchemaBuilder({
                 borderStyle: 'dashed',
                 color: 'text.secondary',
                 borderColor: 'grey.300',
+                backgroundColor: "#fff",
                 '&:hover': {
                   borderColor: 'primary.main',
                   color: 'primary.main',
                   backgroundColor: 'primary.50',
                 },
+                
               }}
             >
               Add Field
@@ -1230,7 +1252,7 @@ export default function SchemaBuilder({
       </Box>
 
       {/* JSON Preview */}
-      <Box sx={{ flex: { lg: '1 1 50%' } }}>
+      <Box sx={{ flex: { lg: '1 1 40%' } }}>
         <Paper
           sx={{
             p: { xs: 1, sm: 2 },
@@ -1261,7 +1283,7 @@ export default function SchemaBuilder({
               </Typography>
               <Box>
                 {isSaving ? (
-                  <Skeleton width={200} />
+                  <Skeleton width={150} />
                 ) : updatedAt ? (
                   <Stack direction='row' alignItems='center' gap={0.5}>
                     <Typography
@@ -1344,7 +1366,7 @@ export default function SchemaBuilder({
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
               maxHeight: 'calc(100% - 80px)',
-              color: "#fffade"
+              color: '#fffade',
             }}
           >
             {JSON.stringify(generatePreview, null, 2)}
@@ -1506,6 +1528,7 @@ export default function SchemaBuilder({
                     setSelectedField(updatedField);
                   }}
                   label='Field Type'
+                  sx={{ backgroundColor: "#fff" }}
                 >
                   <MenuItem value='text'>Text</MenuItem>
                   <MenuItem value='number'>Number</MenuItem>
@@ -1753,9 +1776,7 @@ export default function SchemaBuilder({
                       <>
                         <Divider sx={{ my: 1 }} />
                         <EnumField
-                          initialValue={
-                            selectedField.logic?.enum?.join(', ')
-                          }
+                          initialValue={selectedField.logic?.enum?.join(', ')}
                           onChange={(value) => {
                             const updatedField = {
                               ...selectedField,
