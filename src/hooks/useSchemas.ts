@@ -12,6 +12,18 @@ export function useSchemas() {
   });
 }
 
+export function useGetSchema(id: string) {
+  return useQuery({
+    queryKey: ['schemas', id],
+    queryFn: async (): Promise<SavedSchema> => {
+      const response = await fetch(`/api/schemas/${id}`);
+      if (!response.ok) throw new Error('Failed to fetch schema');
+      return response.json();
+    },
+    enabled: !!id,
+  });
+}
+
 export function useSaveSchema() {
   const queryClient = useQueryClient();
   

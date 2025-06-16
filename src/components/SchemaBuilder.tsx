@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -25,6 +25,7 @@ import {
   AccordionSummary,
   AccordionDetails,
   Divider,
+  CircularProgress,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -40,25 +41,78 @@ import {
 } from '@mui/icons-material';
 import { v4 as uuidv4 } from 'uuid';
 import { SchemaField, JsonSchema } from '@/types/schema';
-import { useSaveSchema } from '@/hooks/useSchemas';
 import { findAndUpdateField, findAndRemoveField } from './utils/fieldUtils';
 
-export default function SchemaBuilder() {
+interface SchemaBuilderProps {
+  initialSchema?: JsonSchema;
+  onSave: (schema: JsonSchema) => void;
+  onUpdateName?: (name: string, currentSchema: JsonSchema) => void;
+  isSaving?: boolean;
+  isUpdatingName?: boolean;
+  saveError?: string;
+  saveSuccess?: boolean;
+}
+
+export default function SchemaBuilder({ 
+  initialSchema,
+  onSave, 
+  onUpdateName,
+  isSaving = false, 
+  isUpdatingName = false,
+  saveError, 
+  saveSuccess 
+}: SchemaBuilderProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
-  const [schema, setSchema] = useState<JsonSchema>({
-    name: 'New Schema',
-    description: '',
-    fields: [],
+  const [schema, setSchema] = useState<JsonSchema>(() => {
+    return initialSchema || {
+      name: 'New Schema',
+      description: '',
+      fields: [],
+    };
   });
   const [selectedField, setSelectedField] = useState<SchemaField | null>(null);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [fieldPropertiesDialogOpen, setFieldPropertiesDialogOpen] = useState(false);
   const [jsonPreviewDialogOpen, setJsonPreviewDialogOpen] = useState(false);
   
+  // Local state for name editing
+  const [editingName, setEditingName] = useState(false);
+  const [tempName, setTempName] = useState(schema.name);
+  
   // State for managing collapsed/expanded state of object fields
   const [collapsedFields, setCollapsedFields] = useState<Set<string>>(new Set());
+  
+  // Sync with initialSchema prop changes
+  useEffect(() => {
+    if (initialSchema) {
+      setSchema(initialSchema);
+      setTempName(initialSchema.name);
+    }
+  }, [initialSchema]);
+
+  // Handle name editing
+  const handleStartNameEdit = () => {
+    setEditingName(true);
+    setTempName(schema.name);
+  };
+
+  const handleSaveName = () => {
+    if (onUpdateName && tempName.trim() !== schema.name) {
+      // Update local schema state immediately for UI responsiveness
+      const updatedSchema = { ...schema, name: tempName.trim() };
+      setSchema(updatedSchema);
+      // Call the parent's update function with both name and current schema
+      onUpdateName(tempName.trim(), updatedSchema);
+    }
+    setEditingName(false);
+  };
+
+  const handleCancelNameEdit = () => {
+    setTempName(schema.name);
+    setEditingName(false);
+  };
   
   const selectField = (field: SchemaField) => {
     setSelectedField(field);
@@ -189,8 +243,6 @@ export default function SchemaBuilder() {
     setTemplateDialogOpen(false);
   };
 
-  const saveSchema = useSaveSchema();
-
   const updateField = (updatedField: SchemaField) => {
     setSchema(prev => ({
       ...prev,
@@ -207,12 +259,8 @@ export default function SchemaBuilder() {
     setSelectedField(null);
   };
 
-  const handleSaveSchema = async () => {
-    try {
-      await saveSchema.mutateAsync(schema);
-    } catch (error) {
-      console.error('Failed to save schema:', error);
-    }
+  const handleSaveSchema = () => {
+    onSave(schema);
   };
 
   // Simple function to add a field directly to the schema (for tree view button)
@@ -1007,6 +1055,85 @@ export default function SchemaBuilder() {
             </Box>
           </Box>
 
+          {/* Schema Name Editor */}
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              Schema Name
+            </Typography>
+            
+            {editingName ? (
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <TextField
+                  value={tempName}
+                  onChange={(e) => setTempName(e.target.value)}
+                  placeholder="Enter schema name"
+                  size="small"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSaveName();
+                    } else if (e.key === 'Escape') {
+                      handleCancelNameEdit();
+                    }
+                  }}
+                  sx={{ flexGrow: 1 }}
+                />
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={handleSaveName}
+                  disabled={isUpdatingName || !tempName.trim()}
+                  sx={{ minWidth: 'auto', px: 2 }}
+                >
+                  {isUpdatingName ? <CircularProgress size={16} /> : 'Save'}
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={handleCancelNameEdit}
+                  disabled={isUpdatingName}
+                  sx={{ minWidth: 'auto', px: 2 }}
+                >
+                  Cancel
+                </Button>
+              </Box>
+            ) : (
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <Typography 
+                  variant="body1" 
+                  sx={{ 
+                    flexGrow: 1, 
+                    fontWeight: 500,
+                    py: 0.75,
+                    px: 1.5,
+                    backgroundColor: 'grey.50',
+                    borderRadius: 1,
+                    border: '1px solid transparent',
+                    cursor: 'pointer',
+                    minHeight: '40px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    '&:hover': {
+                      backgroundColor: 'grey.100',
+                      borderColor: 'grey.300'
+                    }
+                  }}
+                  onClick={handleStartNameEdit}
+                >
+                  {schema.name || 'Untitled Schema'}
+                </Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={handleStartNameEdit}
+                  sx={{ minWidth: 'auto', px: 2 }}
+                >
+                  Edit
+                </Button>
+              </Box>
+            )}
+          </Box>
+
           {schema.fields.length === 0 ? (
             <Typography 
               variant="body2" 
@@ -1017,7 +1144,7 @@ export default function SchemaBuilder() {
                 py: 2,
               }}
             >
-              No fields added yet. Use the "Add Field" button below to add your first field.
+              No fields added yet. Use the &quot;Add Field&quot; button below to add your first field.
             </Typography>
           ) : (
             <Box>
@@ -1101,7 +1228,7 @@ export default function SchemaBuilder() {
                 variant="contained"
                 startIcon={<SaveIcon />}
                 onClick={handleSaveSchema}
-                disabled={saveSchema.isPending}
+                disabled={isSaving}
                 size={isMobile ? "small" : "medium"}
                 sx={{
                   fontSize: { xs: '0.75rem', sm: '0.875rem' },
@@ -1130,13 +1257,13 @@ export default function SchemaBuilder() {
             {JSON.stringify(generatePreview(), null, 2)}
           </Box>
 
-          {saveSchema.isError && (
+          {saveError && (
             <Alert severity="error" sx={{ mt: 2 }}>
-              Failed to save schema. Please try again.
+              {saveError}
             </Alert>
           )}
 
-          {saveSchema.isSuccess && (
+          {saveSuccess && (
             <Alert severity="success" sx={{ mt: 2 }}>
               Schema saved successfully!
             </Alert>

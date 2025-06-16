@@ -30,7 +30,7 @@ import {
   AccountCircle,
   Logout as LogoutIcon,
 } from '@mui/icons-material';
-import SchemaBuilder from '@/components/SchemaBuilder';
+import SchemaList from '@/components/SchemaList';
 import DataGenerator from '@/components/DataGenerator';
 
 const drawerWidth = 280;
@@ -88,7 +88,7 @@ export default function BuilderPage() {
   const renderContent = () => {
     switch (activeTab) {
       case 'schema':
-        return <SchemaBuilder />;
+        return <SchemaList />;
       case 'generator':
         return <DataGenerator />;
       case 'history':
@@ -114,7 +114,7 @@ export default function BuilderPage() {
           </Paper>
         );
       default:
-        return <SchemaBuilder />;
+        return <SchemaList />;
     }
   };
 
