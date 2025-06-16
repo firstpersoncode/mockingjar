@@ -7,7 +7,6 @@ import {
   Typography,
   Card,
   CardContent,
-  CardActions,
   Button,
   IconButton,
   Dialog,
@@ -20,6 +19,7 @@ import {
   Menu,
   MenuItem,
   Chip,
+  CardActionArea,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -94,7 +94,10 @@ export default function SchemaList() {
     }
   };
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, schemaId: string) => {
+  const handleMenuOpen = (
+    event: React.MouseEvent<HTMLElement>,
+    schemaId: string
+  ) => {
     setMenuAnchor(event.currentTarget);
     setSelectedSchemaId(schemaId);
   };
@@ -114,7 +117,12 @@ export default function SchemaList() {
 
   if (isLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+      <Box
+        display='flex'
+        justifyContent='center'
+        alignItems='center'
+        minHeight='400px'
+      >
         <CircularProgress />
       </Box>
     );
@@ -122,28 +130,30 @@ export default function SchemaList() {
 
   if (error) {
     return (
-      <Alert severity="error" sx={{ mb: 2 }}>
+      <Alert severity='error' sx={{ mb: 2 }}>
         Failed to load schemas. Please try again.
       </Alert>
     );
   }
 
   return (
-    <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+    <>
+      <Box
+        display='flex'
+        justifyContent='space-between'
+        alignItems='flex-start'
+        my={3}
+      >
         <Box>
-          <Typography variant="h4" gutterBottom>
-            Schema Library
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
+          <Typography variant='body2' color='text.secondary'>
             Manage your JSON schemas for data generation
           </Typography>
         </Box>
         <Button
-          variant="contained"
+          variant='contained'
           startIcon={<AddIcon />}
           onClick={() => setCreateDialogOpen(true)}
-          size="large"
+          size='large'
         >
           Create Schema
         </Button>
@@ -151,22 +161,22 @@ export default function SchemaList() {
 
       {schemas && schemas.length === 0 ? (
         <Box
-          display="flex"
-          flexDirection="column"
-          alignItems="center"
-          justifyContent="center"
-          minHeight="400px"
-          textAlign="center"
+          display='flex'
+          flexDirection='column'
+          alignItems='center'
+          justifyContent='center'
+          minHeight='400px'
+          textAlign='center'
         >
           <SchemaIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
-          <Typography variant="h5" gutterBottom color="text.secondary">
+          <Typography variant='h5' gutterBottom color='text.secondary'>
             No schemas yet
           </Typography>
-          <Typography variant="body1" color="text.secondary" mb={3}>
+          <Typography variant='body1' color='text.secondary' mb={3}>
             Create your first schema to start generating mock data
           </Typography>
           <Button
-            variant="contained"
+            variant='contained'
             startIcon={<AddIcon />}
             onClick={() => setCreateDialogOpen(true)}
           >
@@ -189,33 +199,45 @@ export default function SchemaList() {
             <Card
               key={schema.id}
               sx={{
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+                transition:
+                  'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
                 '&:hover': {
                   transform: 'translateY(-2px)',
                   boxShadow: 4,
                 },
               }}
             >
-                <CardContent sx={{ flexGrow: 1 }}>
-                  <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
-                    <Typography variant="h6" component="h2" noWrap sx={{ flexGrow: 1, mr: 1 }}>
+              <CardActionArea component="span" onClick={() => handleEditSchema(schema.id)}>
+                <CardContent sx={{ width: '100%', height: '100%' }}>
+                  <Box
+                    display='flex'
+                    justifyContent='space-between'
+                    alignItems='flex-start'
+                    mb={1}
+                  >
+                    <Typography
+                      variant='h6'
+                      component='h2'
+                      noWrap
+                      sx={{ flexGrow: 1, mr: 1 }}
+                    >
                       {schema.name}
                     </Typography>
                     <IconButton
-                      size="small"
-                      onClick={(e) => handleMenuOpen(e, schema.id)}
+                      size='small'
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMenuOpen(e, schema.id);
+                      }}
                     >
                       <MoreVertIcon />
                     </IconButton>
                   </Box>
-                  
+
                   {schema.description && (
                     <Typography
-                      variant="body2"
-                      color="text.secondary"
+                      variant='body2'
+                      color='text.secondary'
                       sx={{
                         mb: 2,
                         display: '-webkit-box',
@@ -228,29 +250,20 @@ export default function SchemaList() {
                     </Typography>
                   )}
 
-                  <Box display="flex" flexWrap="wrap" gap={1} mb={2}>
+                  <Box display='flex' flexWrap='wrap' gap={1} mb={2}>
                     <Chip
                       label={`${schema.structure.fields.length} fields`}
-                      size="small"
-                      variant="outlined"
+                      size='small'
+                      variant='outlined'
                     />
                   </Box>
 
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant='caption' color='text.secondary'>
                     Created {formatDate(schema.createdAt)}
                   </Typography>
                 </CardContent>
-
-                <CardActions>
-                  <Button
-                    size="small"
-                    startIcon={<EditIcon />}
-                    onClick={() => handleEditSchema(schema.id)}
-                  >
-                    Edit
-                  </Button>
-                </CardActions>
-              </Card>
+              </CardActionArea>
+            </Card>
           ))}
         </Box>
       )}
@@ -261,12 +274,16 @@ export default function SchemaList() {
         open={Boolean(menuAnchor)}
         onClose={handleMenuClose}
       >
-        <MenuItem onClick={() => selectedSchemaId && handleEditSchema(selectedSchemaId)}>
+        <MenuItem
+          onClick={() => selectedSchemaId && handleEditSchema(selectedSchemaId)}
+        >
           <EditIcon sx={{ mr: 1 }} />
           Edit Schema
         </MenuItem>
-        <MenuItem 
-          onClick={() => selectedSchemaId && handleDeleteClick(selectedSchemaId)}
+        <MenuItem
+          onClick={() =>
+            selectedSchemaId && handleDeleteClick(selectedSchemaId)
+          }
           sx={{ color: 'error.main' }}
         >
           <DeleteIcon sx={{ mr: 1 }} />
@@ -275,26 +292,31 @@ export default function SchemaList() {
       </Menu>
 
       {/* Create Schema Dialog */}
-      <Dialog open={createDialogOpen} onClose={() => setCreateDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={createDialogOpen}
+        onClose={() => setCreateDialogOpen(false)}
+        maxWidth='sm'
+        fullWidth
+      >
         <DialogTitle>Create New Schema</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
-            margin="dense"
-            label="Schema Name"
+            margin='dense'
+            label='Schema Name'
             fullWidth
-            variant="outlined"
+            variant='outlined'
             value={newSchemaName}
             onChange={(e) => setNewSchemaName(e.target.value)}
             sx={{ mb: 2 }}
           />
           <TextField
-            margin="dense"
-            label="Description (optional)"
+            margin='dense'
+            label='Description (optional)'
             fullWidth
             multiline
             rows={3}
-            variant="outlined"
+            variant='outlined'
             value={newSchemaDescription}
             onChange={(e) => setNewSchemaDescription(e.target.value)}
           />
@@ -303,7 +325,7 @@ export default function SchemaList() {
           <Button onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
           <Button
             onClick={handleCreateSchema}
-            variant="contained"
+            variant='contained'
             disabled={!newSchemaName.trim() || saveSchema.isPending}
           >
             {saveSchema.isPending ? <CircularProgress size={24} /> : 'Create'}
@@ -312,25 +334,29 @@ export default function SchemaList() {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+      >
         <DialogTitle>Delete Schema</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to delete this schema? This action cannot be undone.
+            Are you sure you want to delete this schema? This action cannot be
+            undone.
           </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
           <Button
             onClick={handleDeleteConfirm}
-            color="error"
-            variant="contained"
+            color='error'
+            variant='contained'
             disabled={deleteSchema.isPending}
           >
             {deleteSchema.isPending ? <CircularProgress size={24} /> : 'Delete'}
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </>
   );
 }

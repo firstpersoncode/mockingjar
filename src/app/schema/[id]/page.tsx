@@ -2,11 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import {
-  Box,
-  CircularProgress,
-  Alert,
-} from '@mui/material';
+import { Box, CircularProgress, Alert } from '@mui/material';
 import SchemaBuilder from '@/components/SchemaBuilder';
 import {
   useGetSchema,
@@ -147,43 +143,41 @@ export default function SchemaBuilderPage() {
     : `Edit: ${savedSchema?.name || 'Loading...'}`;
 
   return (
-    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ p: 2 }}>
       <AppBar title={pageTitle} onBack={handleBack} />
 
-      <Box sx={{ flexGrow: 1, overflow: 'auto', p: 3 }}>
-        {saveError && (
-          <Alert
-            severity='error'
-            sx={{ mb: 2 }}
-            onClose={() => setSaveError(undefined)}
-          >
-            {saveError}
-          </Alert>
-        )}
+      {saveError && (
+        <Alert
+          severity='error'
+          sx={{ mb: 2 }}
+          onClose={() => setSaveError(undefined)}
+        >
+          {saveError}
+        </Alert>
+      )}
 
-        {isFetched ? (
-          <SchemaBuilder
-            updatedAt={savedSchema?.updatedAt}
-            initialSchema={savedSchema?.structure}
-            onSave={handleSave}
-            onUpdate={handleUpdate}
-            onUpdateName={handleUpdateName}
-            isSaving={saveSchema.isPending || updateSchema.isPending}
-            isUpdatingName={isUpdatingName}
-            saveError={saveError}
-            saveSuccess={saveSuccess}
-          />
-        ) : (
-          <Box
-            display='flex'
-            justifyContent='center'
-            alignItems='center'
-            minHeight='400px'
-          >
-            <CircularProgress />
-          </Box>
-        )}
-      </Box>
+      {isFetched ? (
+        <SchemaBuilder
+          updatedAt={savedSchema?.updatedAt}
+          initialSchema={savedSchema?.structure}
+          onSave={handleSave}
+          onUpdate={handleUpdate}
+          onUpdateName={handleUpdateName}
+          isSaving={saveSchema.isPending || updateSchema.isPending}
+          isUpdatingName={isUpdatingName}
+          saveError={saveError}
+          saveSuccess={saveSuccess}
+        />
+      ) : (
+        <Box
+          display='flex'
+          justifyContent='center'
+          alignItems='center'
+          minHeight='400px'
+        >
+          <CircularProgress />
+        </Box>
+      )}
     </Box>
   );
 }

@@ -144,7 +144,8 @@ export default function DataGenerator() {
         display: 'flex',
         flexDirection: { xs: 'column', lg: 'row' },
         gap: { xs: 2, md: 3 },
-        height: { lg: 'calc(100vh - 120px)' }
+        height: { lg: 'calc(100vh - 120px)' },
+        my: 2,
       }}
     >
       {/* Generation Controls */}

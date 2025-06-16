@@ -29,11 +29,11 @@ export default function BuilderPage() {
 
   return (
     <Grid container>
-      <Grid size={2}>
+      <Grid size={{ xs: 12, md: 2 }}>
         <SideBar />
       </Grid>
-      <Grid size={10} sx={{ p: 2 }}>
-        <AppBar title='Schema List' />
+      <Grid size={{ xs: 12, md: 10 }} sx={{ p: 2 }}>
+        <AppBar title='Schema Library' />
         <SchemaList />
       </Grid>
     </Grid>

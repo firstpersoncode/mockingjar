@@ -20,8 +20,6 @@ import {
   DialogActions,
   IconButton,
   Alert,
-  useTheme,
-  useMediaQuery,
   Accordion,
   AccordionSummary,
   AccordionDetails,
@@ -76,9 +74,6 @@ export default function SchemaBuilder({
   saveError,
   saveSuccess,
 }: SchemaBuilderProps) {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
   const [schema, setSchema] = useState<JsonSchema>(() => initialSchema);
   const [selectedField, setSelectedField] = useState<SchemaField | null>(null);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
@@ -1093,8 +1088,9 @@ export default function SchemaBuilder({
       sx={{
         display: 'flex',
         flexDirection: { xs: 'column', lg: 'row' },
+        alignItems: "flex-start",
         gap: { xs: 2, md: 3 },
-        height: { lg: 'calc(100vh - 120px)' },
+        my: 2,
       }}
     >
       {/* Schema Tree */}
@@ -1102,12 +1098,6 @@ export default function SchemaBuilder({
         <Paper
           sx={{
             p: { xs: 1, sm: 2 },
-            height: {
-              xs: '400px',
-              sm: '500px',
-              lg: '100%',
-            },
-            overflow: 'auto',
           }}
         >
           <Box
@@ -1251,16 +1241,10 @@ export default function SchemaBuilder({
       </Box>
 
       {/* JSON Preview */}
-      <Box sx={{ flex: { lg: '1 1 40%' } }}>
+      <Box sx={{ flex: { lg: '1 1 40%' }, position: "sticky", top: 0 }}>
         <Paper
           sx={{
             p: { xs: 1, sm: 2 },
-            height: {
-              xs: '400px',
-              sm: '500px',
-              lg: '100%',
-            },
-            overflow: 'auto',
           }}
         >
           <Box
@@ -1271,14 +1255,14 @@ export default function SchemaBuilder({
             flexWrap='wrap'
             gap={{ xs: 1, sm: 0 }}
           >
-            <Stack direction='row' alignItems='center' gap={1}>
+            <Stack direction='row' alignItems='center' gap={2}>
               <Typography
                 variant='h6'
                 sx={{
                   fontSize: { xs: '1rem', sm: '1.25rem' },
                 }}
               >
-                JSON Preview
+                Preview
               </Typography>
               <Box>
                 {isSaving ? (
@@ -1289,7 +1273,7 @@ export default function SchemaBuilder({
                       variant='body2'
                       color='text.secondary'
                       sx={{
-                        fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                        fontSize: "0.7rem",
                         fontStyle: 'italic',
                       }}
                     >
@@ -1316,17 +1300,17 @@ export default function SchemaBuilder({
                 )}
               </Box>
             </Stack>
-            <Box display='flex' gap={{ xs: 0.5, sm: 1 }} alignItems='center'>
+            <Box display='flex' gap={0.5} alignItems='center'>
               <IconButton
                 onClick={() => copyToClipboard(generatePreview)}
-                size={isMobile ? 'small' : 'medium'}
+                size='small'
                 title='Copy to clipboard'
               >
                 <CopyAll />
               </IconButton>
               <IconButton
                 onClick={() => setJsonPreviewDialogOpen(true)}
-                size={isMobile ? 'small' : 'medium'}
+                size='small'
                 title='Open in dialog'
               >
                 <PreviewIcon />
@@ -1335,7 +1319,7 @@ export default function SchemaBuilder({
                 variant='contained'
                 onClick={!isSaving ? handleSaveSchema : undefined}
                 // disabled={isSaving}
-                size={isMobile ? 'small' : 'medium'}
+                size='small'
                 sx={{
                   fontSize: { xs: '0.75rem', sm: '0.875rem' },
                   px: { xs: 1, sm: 2 },

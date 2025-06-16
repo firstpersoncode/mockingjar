@@ -117,39 +117,30 @@ export default function SideBar() {
     [pathname, theme]
   );
 
-  return (
-    <Box component='nav' sx={{ flexShrink: { sm: 0 } }}>
-      {isMobile ? (
-        <Drawer
-          variant='temporary'
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true, // Better open performance on mobile.
-          }}
-          sx={{
-            '& .MuiDrawer-paper': {
-              boxSizing: 'border-box',
-              // width: "100%"
-            },
-          }}
-        >
-          {drawer}
-        </Drawer>
-      ) : (
-        <Drawer
-          variant='permanent'
-          sx={{
-            '& .MuiDrawer-paper': {
-              boxSizing: 'border-box',
-              // width: "100%"
-            },
-          }}
-          open
-        >
-          {drawer}
-        </Drawer>
-      )}
+  return isMobile ? (
+    <Drawer
+      variant='temporary'
+      open={mobileOpen}
+      onClose={handleDrawerToggle}
+      ModalProps={{
+        keepMounted: true, // Better open performance on mobile.
+      }}
+      sx={{}}
+    >
+      {drawer}
+    </Drawer>
+  ) : (
+    <Box
+      sx={{
+        position: "sticky",
+        top: 0,
+        borderRight: '1px solid',
+        borderColor: 'divider',
+        height: '100vh',
+        overflow: 'auto',
+      }}
+    >
+      {drawer}
     </Box>
   );
 }
