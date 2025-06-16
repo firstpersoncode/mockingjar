@@ -27,6 +27,9 @@ import {
   AccordionDetails,
   Divider,
   CircularProgress,
+  Snackbar,
+  Stack,
+  Skeleton,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -39,13 +42,15 @@ import {
   KeyboardArrowRight as ArrowRightIcon,
   KeyboardArrowDown as ArrowDownIcon,
   CopyAll,
+  CheckCircleOutline,
 } from '@mui/icons-material';
 import { v4 as uuidv4 } from 'uuid';
 import { SchemaField, JsonSchema } from '@/types/schema';
 import { findAndUpdateField, findAndRemoveField } from './utils/fieldUtils';
 import { createSchemaTemplates } from './utils/templateUtils';
-
+import { format } from 'date-fns';
 interface SchemaBuilderProps {
+  updatedAt?: Date;
   initialSchema?: JsonSchema;
   onSave: (schema: JsonSchema) => void;
   onUpdate?: (schema: JsonSchema) => void;
@@ -57,7 +62,12 @@ interface SchemaBuilderProps {
 }
 
 export default function SchemaBuilder({
-  initialSchema,
+  updatedAt,
+  initialSchema = {
+    name: 'New Schema',
+    description: '',
+    fields: [],
+  },
   onSave,
   onUpdate,
   onUpdateName,
@@ -69,20 +79,13 @@ export default function SchemaBuilder({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  const [schema, setSchema] = useState<JsonSchema>(() => {
-    return (
-      initialSchema || {
-        name: 'New Schema',
-        description: '',
-        fields: [],
-      }
-    );
-  });
+  const [schema, setSchema] = useState<JsonSchema>(() => initialSchema);
   const [selectedField, setSelectedField] = useState<SchemaField | null>(null);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [fieldPropertiesDialogOpen, setFieldPropertiesDialogOpen] =
     useState(false);
   const [jsonPreviewDialogOpen, setJsonPreviewDialogOpen] = useState(false);
+  const [copyToClipboardMessage, setCopyToClipboardMessage] = useState('');
 
   // Local state for name editing
   const [editingName, setEditingName] = useState(false);
@@ -331,6 +334,7 @@ export default function SchemaBuilder({
   const copyToClipboard = useCallback(async (data: unknown) => {
     try {
       await navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+      setCopyToClipboardMessage('Copied to clipboard!');
     } catch (err) {
       console.error('Failed to copy to clipboard:', err);
     }
@@ -349,7 +353,7 @@ export default function SchemaBuilder({
             alignItems='center'
             gap={1}
             py={0.5}
-            px={level * 2}
+            pl={level * 5}
             sx={{
               cursor: 'pointer',
               '&:hover': { backgroundColor: 'action.hover' },
@@ -466,7 +470,7 @@ export default function SchemaBuilder({
                 },
               }}
             >
-              Add Child
+              Add Field
             </Button>
             <Box sx={{ flexGrow: 1 }} />
             {arrayItem.logic?.required && (
@@ -498,7 +502,7 @@ export default function SchemaBuilder({
             alignItems='center'
             gap={1}
             py={0.5}
-            px={level * 2}
+            pl={level * 5}
             sx={{
               backgroundColor: 'grey.100',
             }}
@@ -634,7 +638,7 @@ export default function SchemaBuilder({
             alignItems='center'
             gap={1}
             py={0.5}
-            px={level * 2}
+            pl={level * 5}
             sx={{
               cursor: 'pointer',
               '&:hover': { backgroundColor: 'action.hover' },
@@ -773,7 +777,7 @@ export default function SchemaBuilder({
                   },
                 }}
               >
-                Add Child
+                Add Field
               </Button>
             )}
 
@@ -823,7 +827,7 @@ export default function SchemaBuilder({
                 alignItems='center'
                 gap={1}
                 py={0.5}
-                px={(level + 1) * 2}
+                pl={(level + 1) * 5}
                 sx={{
                   cursor: 'pointer',
                   '&:hover': { backgroundColor: 'action.hover' },
@@ -978,7 +982,7 @@ export default function SchemaBuilder({
                       },
                     }}
                   >
-                    Add Child
+                    Add Field
                   </Button>
                 )}
 
@@ -1200,10 +1204,10 @@ export default function SchemaBuilder({
           )}
 
           {/* Inline Add Field Button - Always visible */}
-          <Box sx={{ mt: 2, ml: 1 }}>
+          <Box sx={{ mt: 2 }}>
             <Button
               variant='outlined'
-              size='small'
+              size='large'
               startIcon={<AddIcon />}
               onClick={addFieldToTree}
               sx={{
@@ -1246,14 +1250,51 @@ export default function SchemaBuilder({
             flexWrap='wrap'
             gap={{ xs: 1, sm: 0 }}
           >
-            <Typography
-              variant='h6'
-              sx={{
-                fontSize: { xs: '1rem', sm: '1.25rem' },
-              }}
-            >
-              JSON Preview
-            </Typography>
+            <Stack direction='row' alignItems='center' gap={1}>
+              <Typography
+                variant='h6'
+                sx={{
+                  fontSize: { xs: '1rem', sm: '1.25rem' },
+                }}
+              >
+                JSON Preview
+              </Typography>
+              <Box>
+                {isSaving ? (
+                  <Skeleton width={200} />
+                ) : updatedAt ? (
+                  <Stack direction='row' alignItems='center' gap={0.5}>
+                    <Typography
+                      variant='body2'
+                      color='text.secondary'
+                      sx={{
+                        fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                        fontStyle: 'italic',
+                      }}
+                    >
+                      {format(
+                        new Date(updatedAt as Date),
+                        "dd MMM yyyy 'at' HH:mm"
+                      )}
+                    </Typography>
+                    <CheckCircleOutline
+                      sx={{ fontSize: '1rem', color: 'success.main' }}
+                    />
+                  </Stack>
+                ) : (
+                  <Typography
+                    variant='body2'
+                    color='text.secondary'
+                    sx={{
+                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                      fontStyle: 'italic',
+                    }}
+                  >
+                    Not saved yet
+                  </Typography>
+                )}
+              </Box>
+            </Stack>
             <Box display='flex' gap={{ xs: 0.5, sm: 1 }} alignItems='center'>
               <IconButton
                 onClick={() => copyToClipboard(generatePreview)}
@@ -1279,7 +1320,11 @@ export default function SchemaBuilder({
                   px: { xs: 1, sm: 2 },
                 }}
                 startIcon={
-                  isSaving ? <CircularProgress color="inherit" size={16} /> : <SaveIcon />
+                  isSaving ? (
+                    <CircularProgress color='inherit' size={16} />
+                  ) : (
+                    <SaveIcon />
+                  )
                 }
               >
                 Save
@@ -1290,7 +1335,7 @@ export default function SchemaBuilder({
           <Box
             component='pre'
             sx={{
-              backgroundColor: 'grey.100',
+              backgroundColor: 'black',
               p: { xs: 1, sm: 2 },
               borderRadius: 1,
               overflow: 'auto',
@@ -1299,6 +1344,7 @@ export default function SchemaBuilder({
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
               maxHeight: 'calc(100% - 80px)',
+              color: "#fffade"
             }}
           >
             {JSON.stringify(generatePreview, null, 2)}
@@ -1397,7 +1443,7 @@ export default function SchemaBuilder({
       <Dialog
         open={fieldPropertiesDialogOpen}
         onClose={() => setFieldPropertiesDialogOpen(false)}
-        maxWidth='md'
+        maxWidth='sm'
         fullWidth
         sx={{ '& .MuiDialog-paper': { maxHeight: '80vh' } }}
       >
@@ -1706,19 +1752,17 @@ export default function SchemaBuilder({
                       selectedField.type === 'email') && (
                       <>
                         <Divider sx={{ my: 1 }} />
-                        <Typography variant='subtitle2' gutterBottom>
-                          Predefined Values (Optional)
-                        </Typography>
-                        <TextField
-                          label='Enum Values'
-                          value={selectedField.logic?.enum?.join(', ') || ''}
-                          onChange={(e) => {
+                        <EnumField
+                          initialValue={
+                            selectedField.logic?.enum?.join(', ')
+                          }
+                          onChange={(value) => {
                             const updatedField = {
                               ...selectedField,
                               logic: {
                                 ...selectedField.logic,
-                                enum: e.target.value
-                                  ? e.target.value
+                                enum: value
+                                  ? value
                                       .split(',')
                                       .map((v) => v.trim())
                                       .filter((v) => v)
@@ -1728,10 +1772,6 @@ export default function SchemaBuilder({
                             updateField(updatedField);
                             setSelectedField(updatedField);
                           }}
-                          size='small'
-                          helperText='Comma-separated values to restrict field to specific options'
-                          multiline
-                          rows={2}
                         />
                       </>
                     )}
@@ -1803,6 +1843,43 @@ export default function SchemaBuilder({
           <Button onClick={() => setJsonPreviewDialogOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
+
+      <Snackbar
+        open={!!copyToClipboardMessage}
+        autoHideDuration={3000}
+        onClose={() => setCopyToClipboardMessage('')}
+        message={copyToClipboardMessage}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      />
     </Box>
+  );
+}
+
+function EnumField({
+  onChange,
+  initialValue,
+}: {
+  onChange: (value: string) => void;
+  initialValue?: string;
+}) {
+  const [value, setValue] = useState(() => initialValue || '');
+  return (
+    <>
+      <Typography variant='subtitle2' gutterBottom>
+        Predefined Values (Optional)
+      </Typography>
+      <TextField
+        label='Enum Values'
+        value={value}
+        onChange={(e) => {
+          setValue(e.target.value);
+          onChange(e.target.value);
+        }}
+        size='small'
+        helperText='Comma-separated values to restrict field to specific options'
+        multiline
+        rows={2}
+      />
+    </>
   );
 }

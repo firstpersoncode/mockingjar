@@ -10,15 +10,17 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id: schemaId } = await params;
+
     const schema = await prisma.schema.findFirst({
-      where: { 
-        id: params.id,
-        userId: session.user.id 
+      where: {
+        id: schemaId,
+        userId: session.user.id,
       },
     });
 
@@ -29,7 +31,10 @@ export async function GET(
     return NextResponse.json(schema);
   } catch (error) {
     console.error('Error fetching schema:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 
@@ -39,17 +44,17 @@ export async function PUT(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body: JsonSchema = await request.json();
-    
+
     const schema = await prisma.schema.updateMany({
-      where: { 
+      where: {
         id: params.id,
-        userId: session.user.id 
+        userId: session.user.id,
       },
       data: {
         name: body.name,
@@ -65,7 +70,10 @@ export async function PUT(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error updating schema:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 
@@ -75,15 +83,15 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const schema = await prisma.schema.deleteMany({
-      where: { 
+      where: {
         id: params.id,
-        userId: session.user.id 
+        userId: session.user.id,
       },
     });
 
@@ -94,6 +102,9 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting schema:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }

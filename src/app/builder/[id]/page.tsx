@@ -21,7 +21,7 @@ export default function SchemaBuilderPage() {
   const params = useParams();
   const schemaId = params.id as string;
   
-  const { data: savedSchema, isLoading, error } = useGetSchema(schemaId);
+  const { data: savedSchema, isLoading, isFetched, error } = useGetSchema(schemaId);
   const saveSchema = useSaveSchema();
   const updateSchema = useUpdateSchema();
   
@@ -194,9 +194,10 @@ export default function SchemaBuilderPage() {
           </Alert>
         )}
 
-        {initialSchema ? (
+        {isFetched ? (
           <SchemaBuilder
-            initialSchema={initialSchema}
+            updatedAt={savedSchema?.updatedAt}
+            initialSchema={savedSchema?.structure}
             onSave={handleSave}
             onUpdate={handleUpdate}
             onUpdateName={handleUpdateName}
