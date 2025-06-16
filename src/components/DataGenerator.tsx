@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Box,
   Paper,
@@ -37,6 +37,7 @@ import { z } from 'zod';
 import { useSchemas, useGenerateData } from '@/hooks/useSchemas';
 import { GenerationProgress } from '@/types/generation';
 import GenerationProgressComponent from './GenerationProgress';
+import { generateSchemaPreview } from './utils/previewUtils';
 
 const generateSchema = z.object({
   schemaId: z.string().min(1, 'Please select a schema'),
@@ -49,10 +50,13 @@ type GenerateForm = z.infer<typeof generateSchema>;
 export default function DataGenerator() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  
-  const [generatedData, setGeneratedData] = useState<Record<string, unknown>[]>([]);
+
+  const [generatedData, setGeneratedData] = useState<Record<string, unknown>[]>(
+    []
+  );
   const [copySuccess, setCopySuccess] = useState(false);
-  const [currentProgress, setCurrentProgress] = useState<GenerationProgress | null>(null);
+  const [currentProgress, setCurrentProgress] =
+    useState<GenerationProgress | null>(null);
   const [generationMetadata, setGenerationMetadata] = useState<{
     totalFields: number;
     validFields: number;
@@ -79,7 +83,14 @@ export default function DataGenerator() {
   });
 
   const selectedSchemaId = watch('schemaId');
-  const selectedSchema = schemas.find(s => s.id === selectedSchemaId);
+  const selectedSchema = schemas.find((s) => s.id === selectedSchemaId);
+  const generatePreview = useMemo(
+    (): Record<string, unknown> =>
+      selectedSchema?.structure?.fields
+        ? generateSchemaPreview(selectedSchema.structure.fields)
+        : {},
+    [selectedSchema?.structure?.fields]
+  );
 
   const onSubmit = async (data: GenerateForm) => {
     if (!selectedSchema) return;
@@ -101,7 +112,7 @@ export default function DataGenerator() {
         setCurrentProgress({
           stage: 'completed',
           message: 'Data generation completed successfully!',
-          progress: 100
+          progress: 100,
         });
       } else {
         throw new Error(result.errors?.[0] || 'Generation failed');
@@ -111,7 +122,7 @@ export default function DataGenerator() {
       setCurrentProgress({
         stage: 'failed',
         message: error instanceof Error ? error.message : 'Generation failed',
-        progress: 0
+        progress: 0,
       });
     }
   };
@@ -131,7 +142,9 @@ export default function DataGenerator() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `generated-data-${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `generated-data-${
+      new Date().toISOString().split('T')[0]
+    }.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -139,8 +152,8 @@ export default function DataGenerator() {
   };
 
   return (
-    <Box 
-      sx={{ 
+    <Box
+      sx={{
         display: 'flex',
         flexDirection: { xs: 'column', lg: 'row' },
         gap: { xs: 2, md: 3 },
@@ -150,13 +163,15 @@ export default function DataGenerator() {
     >
       {/* Generation Controls */}
       <Box sx={{ flex: { lg: '1 1 50%' } }}>
-        <Paper sx={{ 
-          p: { xs: 2, sm: 3 },
-          height: { lg: '100%' },
-          overflow: 'auto',
-        }}>
-          <Typography 
-            variant="h6" 
+        <Paper
+          sx={{
+            p: { xs: 2, sm: 3 },
+            height: { lg: '100%' },
+            overflow: 'auto',
+          }}
+        >
+          <Typography
+            variant='h6'
             gutterBottom
             sx={{
               fontSize: { xs: '1rem', sm: '1.25rem' },
@@ -167,14 +182,18 @@ export default function DataGenerator() {
 
           <form onSubmit={handleSubmit(onSubmit)}>
             <Controller
-              name="schemaId"
+              name='schemaId'
               control={control}
               render={({ field }) => (
-                <FormControl fullWidth margin="normal" size={isMobile ? "small" : "medium"}>
+                <FormControl
+                  fullWidth
+                  margin='normal'
+                  size={isMobile ? 'small' : 'medium'}
+                >
                   <InputLabel>Select Schema</InputLabel>
                   <Select
                     {...field}
-                    label="Select Schema"
+                    label='Select Schema'
                     error={!!errors.schemaId}
                     disabled={schemasLoading}
                     sx={{
@@ -190,11 +209,11 @@ export default function DataGenerator() {
                     ))}
                   </Select>
                   {errors.schemaId && (
-                    <Typography 
-                      variant="caption" 
-                      color="error" 
-                      sx={{ 
-                        ml: 2, 
+                    <Typography
+                      variant='caption'
+                      color='error'
+                      sx={{
+                        ml: 2,
                         mt: 0.5,
                         fontSize: { xs: '0.65rem', sm: '0.75rem' },
                       }}
@@ -207,33 +226,36 @@ export default function DataGenerator() {
             />
 
             <Controller
-              name="prompt"
+              name='prompt'
               control={control}
               render={({ field }) => (
                 <TextField
                   {...field}
                   fullWidth
-                  label="Generation Prompt"
-                  placeholder="e.g., Generate realistic user data for a tech company"
+                  label='Generation Prompt'
+                  placeholder='e.g., Generate realistic user data for a tech company'
                   multiline
                   rows={4}
-                  margin="normal"
+                  margin='normal'
                   error={!!errors.prompt}
-                  helperText={errors.prompt?.message || 'Describe the type of data you want to generate'}
+                  helperText={
+                    errors.prompt?.message ||
+                    'Describe the type of data you want to generate'
+                  }
                 />
               )}
             />
 
             <Controller
-              name="count"
+              name='count'
               control={control}
               render={({ field }) => (
                 <TextField
                   {...field}
-                  type="number"
+                  type='number'
                   fullWidth
-                  label="Number of Records"
-                  margin="normal"
+                  label='Number of Records'
+                  margin='normal'
                   inputProps={{ min: 1, max: 100 }}
                   error={!!errors.count}
                   helperText={errors.count?.message || 'Generate 1-100 records'}
@@ -243,11 +265,17 @@ export default function DataGenerator() {
             />
 
             <Button
-              type="submit"
-              variant="contained"
-              size="large"
+              type='submit'
+              variant='contained'
+              size='large'
               fullWidth
-              startIcon={generateData.isPending ? <CircularProgress size={20} /> : <GenerateIcon />}
+              startIcon={
+                generateData.isPending ? (
+                  <CircularProgress size={20} />
+                ) : (
+                  <GenerateIcon />
+                )
+              }
               disabled={generateData.isPending || !selectedSchema}
               sx={{ mt: 3 }}
             >
@@ -269,31 +297,55 @@ export default function DataGenerator() {
           {generationMetadata && (
             <Card sx={{ mt: 2 }}>
               <CardContent sx={{ py: 2 }}>
-                <Typography variant="subtitle2" gutterBottom>
+                <Typography variant='subtitle2' gutterBottom>
                   Generation Summary
                 </Typography>
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 1 }}>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+                    gap: 1,
+                  }}
+                >
                   <Box>
-                    <Typography variant="caption" color="text.secondary">Total Fields</Typography>
-                    <Typography variant="body2" fontWeight="medium">{generationMetadata.totalFields}</Typography>
+                    <Typography variant='caption' color='text.secondary'>
+                      Total Fields
+                    </Typography>
+                    <Typography variant='body2' fontWeight='medium'>
+                      {generationMetadata.totalFields}
+                    </Typography>
                   </Box>
                   <Box>
-                    <Typography variant="caption" color="text.secondary">Valid Fields</Typography>
-                    <Typography variant="body2" fontWeight="medium">{generationMetadata.validFields}</Typography>
+                    <Typography variant='caption' color='text.secondary'>
+                      Valid Fields
+                    </Typography>
+                    <Typography variant='body2' fontWeight='medium'>
+                      {generationMetadata.validFields}
+                    </Typography>
                   </Box>
                   <Box>
-                    <Typography variant="caption" color="text.secondary">Attempts</Typography>
-                    <Typography variant="body2" fontWeight="medium">{generationMetadata.attempts}</Typography>
+                    <Typography variant='caption' color='text.secondary'>
+                      Attempts
+                    </Typography>
+                    <Typography variant='body2' fontWeight='medium'>
+                      {generationMetadata.attempts}
+                    </Typography>
                   </Box>
                   <Box>
-                    <Typography variant="caption" color="text.secondary">Time</Typography>
-                    <Typography variant="body2" fontWeight="medium">{(generationMetadata.generationTime / 1000).toFixed(1)}s</Typography>
+                    <Typography variant='caption' color='text.secondary'>
+                      Time
+                    </Typography>
+                    <Typography variant='body2' fontWeight='medium'>
+                      {(generationMetadata.generationTime / 1000).toFixed(1)}s
+                    </Typography>
                   </Box>
                 </Box>
                 {generationMetadata.regeneratedFields.length > 0 && (
                   <Box sx={{ mt: 1 }}>
-                    <Typography variant="caption" color="text.secondary">Regenerated Fields:</Typography>
-                    <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                    <Typography variant='caption' color='text.secondary'>
+                      Regenerated Fields:
+                    </Typography>
+                    <Typography variant='body2' sx={{ fontSize: '0.75rem' }}>
                       {generationMetadata.regeneratedFields.join(', ')}
                     </Typography>
                   </Box>
@@ -303,66 +355,69 @@ export default function DataGenerator() {
           )}
 
           {generateData.isError && (
-            <Alert severity="error" sx={{ mt: 2 }}>
-              {generateData.error instanceof Error ? generateData.error.message : 'Failed to generate data'}
+            <Alert severity='error' sx={{ mt: 2 }}>
+              {generateData.error instanceof Error
+                ? generateData.error.message
+                : 'Failed to generate data'}
             </Alert>
-          )}
-
-          {selectedSchema && (
-            <Box mt={3}>
-              <Typography variant="subtitle2" gutterBottom>
-                Selected Schema Structure:
-              </Typography>
-              <Box
-                component="pre"
-                sx={{
-                  backgroundColor: 'grey.100',
-                  p: 2,
-                  borderRadius: 1,
-                  fontSize: '0.75rem',
-                  overflow: 'auto',
-                  maxHeight: '200px',
-                }}
-              >
-                {JSON.stringify(selectedSchema.structure, null, 2)}
-              </Box>
-            </Box>
           )}
         </Paper>
       </Box>
 
       {/* Generated Data Preview */}
       <Box sx={{ flex: { lg: '1 1 50%' } }}>
-        <Paper sx={{ 
-          p: 3, 
-          height: { 
-            xs: '500px',
-            lg: '100%' 
-          }, 
-          overflow: 'auto' 
-        }}>
-          <Box 
-            display="flex" 
-            justifyContent="space-between" 
-            alignItems="center" 
+        <Paper
+          sx={{
+            p: 3,
+          }}
+        >
+          {selectedSchema && (
+            <Box sx={{ mb: 2 }}>
+              <Typography variant='subtitle2' gutterBottom>
+                Preview:
+              </Typography>
+              <Box
+                component='pre'
+                sx={{
+                  p: { xs: 1, sm: 2 },
+                  borderRadius: 1,
+                  maxHeight: '300px',
+                  overflow: 'auto',
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                  lineHeight: { xs: 1.3, sm: 1.4 },
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  color: '#fffade',
+                  backgroundColor: '#000',
+                }}
+              >
+                {JSON.stringify(generatePreview, null, 2)}
+              </Box>
+            </Box>
+          )}
+
+          <Box
+            display='flex'
+            justifyContent='space-between'
+            alignItems='center'
             mb={2}
-            flexWrap="wrap"
+            flexWrap='wrap'
             gap={1}
           >
-            <Typography 
-              variant="h6"
+            <Typography
+              variant='h6'
               sx={{
                 fontSize: { xs: '1rem', sm: '1.25rem' },
               }}
             >
               Generated Data ({generatedData.length} records)
             </Typography>
-            
+
             {generatedData.length > 0 && (
-              <ButtonGroup 
-                variant="outlined" 
-                size={isMobile ? "small" : "medium"}
-                orientation={isMobile ? "vertical" : "horizontal"}
+              <ButtonGroup
+                variant='outlined'
+                size={isMobile ? 'small' : 'medium'}
+                orientation={isMobile ? 'vertical' : 'horizontal'}
               >
                 <Button
                   startIcon={<CopyIcon />}
@@ -370,10 +425,7 @@ export default function DataGenerator() {
                 >
                   Copy All
                 </Button>
-                <Button
-                  startIcon={<DownloadIcon />}
-                  onClick={downloadData}
-                >
+                <Button startIcon={<DownloadIcon />} onClick={downloadData}>
                   Download
                 </Button>
               </ButtonGroup>
@@ -383,31 +435,37 @@ export default function DataGenerator() {
           {generatedData.length === 0 ? (
             <Box sx={{ textAlign: 'center', py: 4 }}>
               <InfoIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-              <Typography variant="body2" color="text.secondary">
-                No data generated yet. Select a schema and provide a prompt to generate data.
+              <Typography variant='body2' color='text.secondary'>
+                No data generated yet. Select a schema and provide a prompt to
+                generate data.
               </Typography>
               {currentProgress?.stage === 'failed' && (
-                <Alert severity="error" sx={{ mt: 2, textAlign: 'left' }}>
-                  <Typography variant="body2">
-                    Generation failed. Please check your schema and prompt, then try again.
+                <Alert severity='error' sx={{ mt: 2, textAlign: 'left' }}>
+                  <Typography variant='body2'>
+                    Generation failed. Please check your schema and prompt, then
+                    try again.
                   </Typography>
                 </Alert>
               )}
             </Box>
           ) : (
-            <Box sx={{width: '100%'}}>
+            <Box sx={{ width: '100%' }}>
               <Divider sx={{ mb: 2 }} />
               {generatedData.map((record, index) => (
                 <Accordion key={index} sx={{ mb: 1 }}>
                   <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Typography variant="subtitle2">
+                    <Typography variant='subtitle2'>
                       Record {index + 1}
                     </Typography>
                   </AccordionSummary>
                   <AccordionDetails>
-                    <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+                    <Box
+                      display='flex'
+                      justifyContent='space-between'
+                      alignItems='flex-start'
+                    >
                       <Box
-                        component="pre"
+                        component='pre'
                         sx={{
                           backgroundColor: 'grey.50',
                           p: 2,
@@ -422,11 +480,11 @@ export default function DataGenerator() {
                         {JSON.stringify(record, null, 2)}
                       </Box>
                       <IconButton
-                        size="small"
+                        size='small'
                         onClick={() => copyToClipboard(record)}
-                        title="Copy this record"
+                        title='Copy this record'
                       >
-                        <CopyIcon fontSize="small" />
+                        <CopyIcon fontSize='small' />
                       </IconButton>
                     </Box>
                   </AccordionDetails>
@@ -442,7 +500,7 @@ export default function DataGenerator() {
         open={copySuccess}
         autoHideDuration={3000}
         onClose={() => setCopySuccess(false)}
-        message="Copied to clipboard!"
+        message='Copied to clipboard!'
       />
     </Box>
   );

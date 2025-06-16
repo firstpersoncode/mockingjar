@@ -48,6 +48,7 @@ import { SchemaField, JsonSchema } from '@/types/schema';
 import { findAndUpdateField, findAndRemoveField } from './utils/fieldUtils';
 import { createSchemaTemplates } from './utils/templateUtils';
 import { format } from 'date-fns';
+import { generateSchemaPreview } from './utils/previewUtils';
 interface SchemaBuilderProps {
   updatedAt?: Date;
   initialSchema?: JsonSchema;
@@ -225,94 +226,11 @@ export default function SchemaBuilder({
     }));
   }, []);
 
-  const generatePreview = useMemo((): Record<string, unknown> => {
-    const generateFieldPreview = (field: SchemaField): unknown => {
-      switch (field.type) {
-        case 'text':
-        case 'email':
-        case 'url':
-          return field.logic?.enum
-            ? `enum: [${field.logic.enum.join(', ')}]`
-            : 'string';
-        case 'number':
-          return field.logic?.enum
-            ? `enum: [${field.logic.enum.join(', ')}]`
-            : 'number';
-        case 'boolean':
-          return 'boolean';
-        case 'date':
-          return 'date';
-        case 'array':
-          // Show collapsed indicator if field is collapsed and has arrayItemType
-          if (collapsedFields.has(field.id) && field.arrayItemType) {
-            return `[ ...1 item type ]`;
-          }
-
-          if (field.arrayItemType) {
-            return [generateFieldPreview(field.arrayItemType)];
-          }
-          return ['any'];
-        case 'object':
-          const obj: Record<string, unknown> = {};
-
-          // Show collapsed indicator instead of children if field is collapsed
-          if (
-            collapsedFields.has(field.id) &&
-            field.children &&
-            field.children.length > 0
-          ) {
-            return `{ ...${field.children.length} field${
-              field.children.length !== 1 ? 's' : ''
-            } }`;
-          }
-
-          if (field.children && field.children.length > 0) {
-            // Track used keys to handle duplicates
-            const usedKeys = new Set<string>();
-
-            field.children.forEach((child) => {
-              let keyName = child.name;
-
-              // Handle duplicate keys by appending a number
-              if (usedKeys.has(keyName)) {
-                let counter = 2;
-                while (usedKeys.has(`${keyName}_${counter}`)) {
-                  counter++;
-                }
-                keyName = `${keyName}_${counter}`;
-              }
-
-              usedKeys.add(keyName);
-              obj[keyName] = generateFieldPreview(child);
-            });
-          }
-          return obj;
-        default:
-          return 'unknown';
-      }
-    };
-
-    const preview: Record<string, unknown> = {};
-    const usedTopLevelKeys = new Set<string>();
-
-    schema.fields.forEach((field) => {
-      let keyName = field.name;
-
-      // Handle duplicate keys by appending a number
-      if (usedTopLevelKeys.has(keyName)) {
-        let counter = 2;
-        while (usedTopLevelKeys.has(`${keyName}_${counter}`)) {
-          counter++;
-        }
-        keyName = `${keyName}_${counter}`;
-      }
-
-      usedTopLevelKeys.add(keyName);
-      preview[keyName] = generateFieldPreview(field);
-    });
-
-    return preview;
-  }, [schema.fields, collapsedFields]);
+  const generatePreview = useMemo(
+    (): Record<string, unknown> =>
+      generateSchemaPreview(schema.fields, { collapsedFields }),
+    [schema.fields, collapsedFields]
+  );
 
   const copyToClipboard = useCallback(async (data: unknown) => {
     try {
@@ -1118,58 +1036,58 @@ export default function SchemaBuilder({
 
           {/* Schema Name Editor */}
           <Box sx={{ mb: 2 }}>
-           <TextField
-                value={tempName}
-                onChange={(e) => setTempName(e.target.value)}
-                placeholder='Enter schema name'
-                size='small'
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleSaveName();
-                  }
-                }}
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position='start'>
-                        <Typography
-                          variant='body2'
-                          color='text.secondary'
-                          sx={{ fontStyle: 'italic' }}
-                        >
-                          Name:
-                        </Typography>
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position='end'>
-                        <Button
-                          variant='contained'
-                          size='small'
-                          onClick={handleSaveName}
-                          disabled={
-                            isUpdatingName ||
-                            !tempName.trim() ||
-                            tempName === schema.name
-                          }
-                          sx={{
-                            fontSize: "0.7rem",
-                            py: .25,
-                            minHeight: 0
-                          }}
-                        >
-                          {isUpdatingName ? (
-                            <CircularProgress size={16} />
-                          ) : (
-                            'Save'
-                          )}
-                        </Button>
-                      </InputAdornment>
-                    ),
-                  },
-                }}
-              />
+            <TextField
+              value={tempName}
+              onChange={(e) => setTempName(e.target.value)}
+              placeholder='Enter schema name'
+              size='small'
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSaveName();
+                }
+              }}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position='start'>
+                      <Typography
+                        variant='body2'
+                        color='text.secondary'
+                        sx={{ fontStyle: 'italic' }}
+                      >
+                        Name:
+                      </Typography>
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position='end'>
+                      <Button
+                        variant='contained'
+                        size='small'
+                        onClick={handleSaveName}
+                        disabled={
+                          isUpdatingName ||
+                          !tempName.trim() ||
+                          tempName === schema.name
+                        }
+                        sx={{
+                          fontSize: '0.7rem',
+                          py: 0.25,
+                          minHeight: 0,
+                        }}
+                      >
+                        {isUpdatingName ? (
+                          <CircularProgress size={16} />
+                        ) : (
+                          'Save'
+                        )}
+                      </Button>
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
           </Box>
 
           {schema.fields.length === 0 ? (
@@ -1316,7 +1234,6 @@ export default function SchemaBuilder({
           <Box
             component='pre'
             sx={{
-              backgroundColor: 'black',
               p: { xs: 1, sm: 2 },
               borderRadius: 1,
               overflow: 'auto',
@@ -1324,8 +1241,8 @@ export default function SchemaBuilder({
               lineHeight: { xs: 1.3, sm: 1.4 },
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
-              maxHeight: 'calc(100% - 80px)',
               color: '#fffade',
+              backgroundColor: '#000',
             }}
           >
             {JSON.stringify(generatePreview, null, 2)}
