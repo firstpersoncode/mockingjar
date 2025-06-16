@@ -28,6 +28,7 @@ import {
   Snackbar,
   Stack,
   Skeleton,
+  InputAdornment,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -83,7 +84,6 @@ export default function SchemaBuilder({
   const [copyToClipboardMessage, setCopyToClipboardMessage] = useState('');
 
   // Local state for name editing
-  const [editingName, setEditingName] = useState(false);
   const [tempName, setTempName] = useState(schema.name);
 
   // State for managing collapsed/expanded state of object fields
@@ -144,12 +144,6 @@ export default function SchemaBuilder({
     };
   }, [debouncedAutoSave]);
 
-  // Handle name editing
-  const handleStartNameEdit = () => {
-    setEditingName(true);
-    setTempName(schema.name);
-  };
-
   const handleSaveName = () => {
     if (onUpdateName && tempName.trim() !== schema.name) {
       // Update local schema state immediately for UI responsiveness
@@ -158,12 +152,6 @@ export default function SchemaBuilder({
       // Call the parent's update function with both name and current schema
       onUpdateName(tempName.trim(), updatedSchema);
     }
-    setEditingName(false);
-  };
-
-  const handleCancelNameEdit = () => {
-    setTempName(schema.name);
-    setEditingName(false);
   };
 
   const selectField = useCallback((field: SchemaField) => {
@@ -380,7 +368,7 @@ export default function SchemaBuilder({
                   marginRight: 0.5,
                   marginLeft: 0,
                 },
-                backgroundColor: "#fff"
+                backgroundColor: '#fff',
               }}
             >
               {arrayItem.name} (array item)
@@ -422,7 +410,7 @@ export default function SchemaBuilder({
                   '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
                   borderRadius: 1,
                   minHeight: '20px',
-                  backgroundColor: "#fff"
+                  backgroundColor: '#fff',
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -463,7 +451,7 @@ export default function SchemaBuilder({
                 borderStyle: 'dashed',
                 borderColor: 'grey.400',
                 color: 'grey.600',
-                backgroundColor: "#fff",
+                backgroundColor: '#fff',
                 '&:hover': {
                   borderColor: 'grey.600',
                   backgroundColor: 'grey.50',
@@ -533,7 +521,7 @@ export default function SchemaBuilder({
                   marginRight: 0.5,
                   marginLeft: 0,
                 },
-                backgroundColor: "#fff"
+                backgroundColor: '#fff',
               }}
             >
               {arrayItem.name} (nested array)
@@ -588,7 +576,7 @@ export default function SchemaBuilder({
                   '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
                   borderRadius: 1,
                   minHeight: '20px',
-                  backgroundColor: "#fff"
+                  backgroundColor: '#fff',
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -693,7 +681,7 @@ export default function SchemaBuilder({
                   marginRight: 0.5,
                   marginLeft: 0,
                 },
-                backgroundColor: "#fff"
+                backgroundColor: '#fff',
               }}
             >
               {field.name}
@@ -736,7 +724,7 @@ export default function SchemaBuilder({
                   '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
                   borderRadius: 1,
                   minHeight: '20px',
-                  backgroundColor: "#fff"
+                  backgroundColor: '#fff',
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -779,7 +767,7 @@ export default function SchemaBuilder({
                   borderStyle: 'dashed',
                   color: 'text.secondary',
                   borderColor: 'divider',
-                  backgroundColor: "#fff",
+                  backgroundColor: '#fff',
                   '&:hover': {
                     borderColor: 'primary.main',
                     backgroundColor: 'action.hover',
@@ -890,7 +878,7 @@ export default function SchemaBuilder({
                       marginRight: 0.5,
                       marginLeft: 0,
                     },
-                    backgroundColor: "#fff"
+                    backgroundColor: '#fff',
                   }}
                 >
                   {field.arrayItemType?.name || 'item'} (array item)
@@ -937,7 +925,7 @@ export default function SchemaBuilder({
                       fontSize: '0.75rem',
                       '& .MuiSelect-select': { py: 0.25, px: 1 },
                       '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                      backgroundColor: "#fff",
+                      backgroundColor: '#fff',
                       borderRadius: 1,
                       minHeight: '20px',
                     }}
@@ -989,7 +977,7 @@ export default function SchemaBuilder({
                       borderStyle: 'dashed',
                       borderColor: 'grey.400',
                       color: 'grey.600',
-                      backgroundColor: "#fff",
+                      backgroundColor: '#fff',
                       '&:hover': {
                         borderColor: 'grey.600',
                         backgroundColor: 'grey.50',
@@ -1088,7 +1076,7 @@ export default function SchemaBuilder({
       sx={{
         display: 'flex',
         flexDirection: { xs: 'column', lg: 'row' },
-        alignItems: "flex-start",
+        alignItems: 'flex-start',
         gap: { xs: 2, md: 3 },
         my: 2,
       }}
@@ -1130,69 +1118,58 @@ export default function SchemaBuilder({
 
           {/* Schema Name Editor */}
           <Box sx={{ mb: 2 }}>
-            {editingName ? (
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                <TextField
-                  value={tempName}
-                  onChange={(e) => setTempName(e.target.value)}
-                  placeholder='Enter schema name'
-                  size='small'
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleSaveName();
-                    } else if (e.key === 'Escape') {
-                      handleCancelNameEdit();
-                    }
-                  }}
-                  sx={{ flexGrow: 1 }}
-                />
-                <Button
-                  variant='contained'
-                  size='small'
-                  onClick={handleSaveName}
-                  disabled={isUpdatingName || !tempName.trim()}
-                  sx={{ minWidth: 'auto', px: 2 }}
-                >
-                  {isUpdatingName ? <CircularProgress size={16} /> : 'Save'}
-                </Button>
-                <Button
-                  variant='outlined'
-                  size='small'
-                  onClick={handleCancelNameEdit}
-                  disabled={isUpdatingName}
-                  sx={{ minWidth: 'auto', px: 2 }}
-                >
-                  Cancel
-                </Button>
-              </Box>
-            ) : (
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                <Typography
-                  variant='body1'
-                  sx={{
-                    flexGrow: 1,
-                    fontWeight: 500,
-                    py: 0.75,
-                    px: 1.5,
-                    backgroundColor: 'grey.50',
-                    borderRadius: 1,
-                    border: '1px solid transparent',
-                    cursor: 'pointer',
-                    minHeight: '40px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    '&:hover': {
-                      backgroundColor: 'grey.100',
-                      borderColor: 'grey.300',
-                    },
-                  }}
-                  onClick={handleStartNameEdit}
-                >
-                  {schema.name || 'Untitled Schema'}
-                </Typography>
-              </Box>
-            )}
+           <TextField
+                value={tempName}
+                onChange={(e) => setTempName(e.target.value)}
+                placeholder='Enter schema name'
+                size='small'
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSaveName();
+                  }
+                }}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position='start'>
+                        <Typography
+                          variant='body2'
+                          color='text.secondary'
+                          sx={{ fontStyle: 'italic' }}
+                        >
+                          Name:
+                        </Typography>
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position='end'>
+                        <Button
+                          variant='contained'
+                          size='small'
+                          onClick={handleSaveName}
+                          disabled={
+                            isUpdatingName ||
+                            !tempName.trim() ||
+                            tempName === schema.name
+                          }
+                          sx={{
+                            fontSize: "0.7rem",
+                            py: .25,
+                            minHeight: 0
+                          }}
+                        >
+                          {isUpdatingName ? (
+                            <CircularProgress size={16} />
+                          ) : (
+                            'Save'
+                          )}
+                        </Button>
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
           </Box>
 
           {schema.fields.length === 0 ? (
@@ -1225,13 +1202,12 @@ export default function SchemaBuilder({
                 borderStyle: 'dashed',
                 color: 'text.secondary',
                 borderColor: 'grey.300',
-                backgroundColor: "#fff",
+                backgroundColor: '#fff',
                 '&:hover': {
                   borderColor: 'primary.main',
                   color: 'primary.main',
                   backgroundColor: 'primary.50',
                 },
-                
               }}
             >
               Add Field
@@ -1241,7 +1217,7 @@ export default function SchemaBuilder({
       </Box>
 
       {/* JSON Preview */}
-      <Box sx={{ flex: { lg: '1 1 40%' }, position: "sticky", top: 0 }}>
+      <Box sx={{ flex: { lg: '1 1 40%' }, position: 'sticky', top: 0 }}>
         <Paper
           sx={{
             p: { xs: 1, sm: 2 },
@@ -1273,7 +1249,7 @@ export default function SchemaBuilder({
                       variant='body2'
                       color='text.secondary'
                       sx={{
-                        fontSize: "0.7rem",
+                        fontSize: '0.7rem',
                         fontStyle: 'italic',
                       }}
                     >
@@ -1511,7 +1487,7 @@ export default function SchemaBuilder({
                     setSelectedField(updatedField);
                   }}
                   label='Field Type'
-                  sx={{ backgroundColor: "#fff" }}
+                  sx={{ backgroundColor: '#fff' }}
                 >
                   <MenuItem value='text'>Text</MenuItem>
                   <MenuItem value='number'>Number</MenuItem>
