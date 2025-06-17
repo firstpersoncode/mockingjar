@@ -7,6 +7,7 @@ import {
 } from '@/types/generation';
 import { validateData, normalizeData, getFailedFields } from '@/lib/validation';
 import type Anthropic from '@anthropic-ai/sdk';
+import { generateSchemaPreview } from '@/utils/schema';
 
 const MAX_RETRIES = 3;
 
@@ -173,68 +174,7 @@ export async function generateJsonDataHybrid(
 export function convertSchemaToJsonStructure(
   fields: SchemaField[]
 ): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
-
-  for (const field of fields) {
-    switch (field.type) {
-      case 'text':
-      case 'email':
-      case 'url':
-        result[field.name] = 'string';
-        break;
-      case 'number':
-        result[field.name] = 'number';
-        break;
-      case 'boolean':
-        result[field.name] = 'boolean';
-        break;
-      case 'date':
-        result[field.name] = 'date';
-        break;
-      case 'array':
-        if (field.arrayItemType) {
-          if (field.arrayItemType.type === 'array') {
-            // Handle nested arrays (array of arrays)
-            // Recursively handle the nested array's items
-            if (field.arrayItemType.arrayItemType) {
-              if (field.arrayItemType.arrayItemType.type === 'object' && field.arrayItemType.arrayItemType.children) {
-                result[field.name] = [[convertSchemaToJsonStructure(field.arrayItemType.arrayItemType.children)]];
-              } else {
-                const itemType = field.arrayItemType.arrayItemType.type === 'text' ? 'string' : field.arrayItemType.arrayItemType.type;
-                result[field.name] = [[itemType]];
-              }
-            } else {
-              result[field.name] = [['string']];
-            }
-          } else if (
-            field.arrayItemType.type === 'object' &&
-            field.arrayItemType.children
-          ) {
-            result[field.name] = [
-              convertSchemaToJsonStructure(field.arrayItemType.children),
-            ];
-          } else {
-            result[field.name] = [
-              field.arrayItemType.type === 'text'
-                ? 'string'
-                : field.arrayItemType.type,
-            ];
-          }
-        } else {
-          result[field.name] = ['string'];
-        }
-        break;
-      case 'object':
-        if (field.children) {
-          result[field.name] = convertSchemaToJsonStructure(field.children);
-        } else {
-          result[field.name] = {};
-        }
-        break;
-    }
-  }
-
-  return result;
+  return generateSchemaPreview(fields)
 }
 
 /**

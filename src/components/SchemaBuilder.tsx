@@ -45,7 +45,7 @@ import {
 } from '@mui/icons-material';
 import { v4 as uuidv4 } from 'uuid';
 import { SchemaField, JsonSchema } from '@/types/schema';
-import { createSchemaTemplates } from '../utils/template';
+import { createSchemaTemplates } from '../lib/template';
 import { format } from 'date-fns';
 import {
   generateSchemaPreview,
