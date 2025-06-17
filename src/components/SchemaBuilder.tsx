@@ -51,7 +51,7 @@ import {
   generateSchemaPreview,
   findAndUpdateField,
   findAndRemoveField,
-} from '../utils/schema';
+} from '../lib/schema';
 interface SchemaBuilderProps {
   updatedAt?: Date;
   initialSchema?: JsonSchema;

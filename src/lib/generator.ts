@@ -7,7 +7,7 @@ import {
 } from '@/types/generation';
 import { validateData, normalizeData, getFailedFields } from '@/lib/validation';
 import type Anthropic from '@anthropic-ai/sdk';
-import { generateSchemaPreview } from '@/utils/schema';
+import { generateSchemaPreview } from '@/lib/schema';
 
 const MAX_RETRIES = 3;
 
