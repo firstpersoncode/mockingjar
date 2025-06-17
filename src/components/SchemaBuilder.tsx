@@ -45,10 +45,13 @@ import {
 } from '@mui/icons-material';
 import { v4 as uuidv4 } from 'uuid';
 import { SchemaField, JsonSchema } from '@/types/schema';
-import { findAndUpdateField, findAndRemoveField } from './utils/fieldUtils';
-import { createSchemaTemplates } from './utils/templateUtils';
+import { createSchemaTemplates } from '../utils/template';
 import { format } from 'date-fns';
-import { generateSchemaPreview } from './utils/previewUtils';
+import {
+  generateSchemaPreview,
+  findAndUpdateField,
+  findAndRemoveField,
+} from '../utils/schema';
 interface SchemaBuilderProps {
   updatedAt?: Date;
   initialSchema?: JsonSchema;

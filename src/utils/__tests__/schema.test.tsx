@@ -1,6 +1,6 @@
 import { SchemaField } from '@/types/schema';
 import { v4 as uuidv4 } from 'uuid';
-import { findAndUpdateField, findAndRemoveField } from '../fieldUtils';
+import { findAndUpdateField, findAndRemoveField } from '../schema';
 
 // Mock the hooks
 jest.mock('@/hooks/useSchemas', () => ({

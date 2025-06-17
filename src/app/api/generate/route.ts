@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { generateJsonDataHybrid } from '@/lib/anthropic';
 import { JsonSchema } from '@/types/schema';
 import { GenerationProgress } from '@/types/generation';
+import { generateJsonDataHybrid } from '@/lib/generator';
+import { anthropic } from '@/lib/anthropic';
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,6 +44,7 @@ export async function POST(request: NextRequest) {
 
     // Generate data using hybrid strategy
     const result = await generateJsonDataHybrid(
+      anthropic,
       schema,
       prompt,
       count,

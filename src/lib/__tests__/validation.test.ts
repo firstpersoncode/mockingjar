@@ -1126,4 +1126,295 @@ describe('validation module', () => {
       });
     });
   });
+
+  describe('NESTED ARRAYS - PROVING MY CLAIMS', () => {
+    it('should handle nested arrays (array of arrays of objects) correctly', () => {
+      const nestedArraySchema = createSchema([
+        {
+          id: '1',
+          name: 'id',
+          type: 'number',
+        },
+        {
+          id: '2',
+          name: 'departments',
+          type: 'array',
+          arrayItemType: {
+            id: '3',
+            name: 'department_array',
+            type: 'array',
+            arrayItemType: {
+              id: '4',
+              name: 'department_item',
+              type: 'object',
+              children: [
+                {
+                  id: '5',
+                  name: 'name',
+                  type: 'text',
+                  logic: { required: true }
+                },
+                {
+                  id: '6',
+                  name: 'role',
+                  type: 'text',
+                  logic: { required: true }
+                },
+              ],
+            },
+          },
+        },
+      ]);
+
+      // Test 1: Check what JSON schema is generated
+      const jsonSchema = convertToJsonSchema(nestedArraySchema.fields);
+      console.log('Generated JSON Schema:', JSON.stringify(jsonSchema, null, 2));
+      
+      // Test 2: Valid nested array structure - SHOULD PASS
+      const validData = {
+        id: 1001,
+        departments: [
+          [
+            { name: 'Finance', role: 'Manager' },
+            { name: 'HR', role: 'Director' },
+          ],
+          [
+            { name: 'IT', role: 'Lead' },
+          ],
+        ],
+      };
+
+      const validResult = validateData(validData, nestedArraySchema);
+      console.log('Valid data result:', validResult);
+      expect(validResult.isValid).toBe(true);
+
+      // Test 3: WRONG flat array structure - SHOULD FAIL
+      const invalidFlatData = {
+        id: 1001,
+        departments: ['Finance', 'HR', 'IT'], // This is WRONG
+      };
+
+      const invalidResult = validateData(invalidFlatData, nestedArraySchema);
+      console.log('Invalid flat data result:', invalidResult);
+      expect(invalidResult.isValid).toBe(false);
+
+      // Test 4: Partially wrong structure - SHOULD FAIL
+      const partiallyWrongData = {
+        id: 1001,
+        departments: [
+          ['Finance'], // Wrong - should be objects, not strings
+          ['HR'],
+        ],
+      };
+
+      const partiallyWrongResult = validateData(partiallyWrongData, nestedArraySchema);
+      console.log('Partially wrong data result:', partiallyWrongResult);
+      expect(partiallyWrongResult.isValid).toBe(false);
+
+      // Test 5: Check what failed fields are identified
+      const failedFields = getFailedFields(invalidResult.errors);
+      console.log('Failed fields from flat array:', failedFields);
+      
+      const partiallyWrongFailedFields = getFailedFields(partiallyWrongResult.errors);
+      console.log('Failed fields from partially wrong:', partiallyWrongFailedFields);
+    });
+
+    it('should normalize nested array data correctly', () => {
+      const nestedArraySchema = createSchema([
+        {
+          id: '1',
+          name: 'departments',
+          type: 'array',
+          arrayItemType: {
+            id: '2',
+            name: 'department_array',
+            type: 'array',
+            arrayItemType: {
+              id: '3',
+              name: 'department_item',
+              type: 'object',
+              children: [
+                {
+                  id: '4',
+                  name: 'name',
+                  type: 'text',
+                },
+              ],
+            },
+          },
+        },
+      ]);
+
+      // Data that might need normalization
+      const unnormalizedData = {
+        departments: [
+          [
+            { name: 'Finance' },
+          ],
+        ],
+      };
+
+      const normalized = normalizeData(unnormalizedData, nestedArraySchema) as Record<string, unknown>;
+      console.log('Normalized nested array data:', JSON.stringify(normalized, null, 2));
+      
+      // Verify normalization doesn't break the structure
+      expect(Array.isArray(normalized.departments)).toBe(true);
+      expect(Array.isArray((normalized.departments as unknown[][])[0])).toBe(true);
+      expect(typeof ((normalized.departments as unknown[][])[0][0])).toBe('object');
+    });
+  });
+
+  describe('DEBUGGING NORMALIZATION ISSUES', () => {
+    it('should reveal why normalization is breaking nested array validation', () => {
+      const nestedArraySchema = createSchema([
+        {
+          id: '1',
+          name: 'id',
+          type: 'number',
+        },
+        {
+          id: '2',
+          name: 'departments',
+          type: 'array',
+          arrayItemType: {
+            id: '3',
+            name: 'department_array',
+            type: 'array',
+            arrayItemType: {
+              id: '4',
+              name: 'department_item',
+              type: 'object',
+              children: [
+                {
+                  id: '5',
+                  name: 'name',
+                  type: 'text',
+                },
+                {
+                  id: '6',
+                  name: 'role',
+                  type: 'text',
+                },
+              ],
+            },
+          },
+        },
+      ]);
+
+      // Test 1: What Claude actually returns (flat array)
+      const claudeWrongData = {
+        id: 1001,
+        departments: ['Finance', 'Human Resources', 'IT'], // WRONG - flat array
+      };
+
+      console.log('🔍 DEBUGGING: Original Claude data:', JSON.stringify(claudeWrongData, null, 2));
+
+      // Test 2: What happens during normalization
+      const normalized = normalizeData(claudeWrongData, nestedArraySchema);
+      console.log('🔍 DEBUGGING: After normalization:', JSON.stringify(normalized, null, 2));
+
+      // Test 3: Validation BEFORE normalization (should fail)
+      const validationBeforeNorm = validateData(claudeWrongData, nestedArraySchema);
+      console.log('🔍 DEBUGGING: Validation BEFORE normalization:', {
+        isValid: validationBeforeNorm.isValid,
+        errorCount: validationBeforeNorm.errors.length,
+        errors: validationBeforeNorm.errors.map(e => ({ field: e.field, message: e.message }))
+      });
+
+      // Test 4: Validation AFTER normalization (should still fail but might not)
+      const validationAfterNorm = validateData(normalized, nestedArraySchema);
+      console.log('🔍 DEBUGGING: Validation AFTER normalization:', {
+        isValid: validationAfterNorm.isValid,
+        errorCount: validationAfterNorm.errors.length,
+        errors: validationAfterNorm.errors.map(e => ({ field: e.field, message: e.message }))
+      });
+
+      // Test 5: What the CORRECT structure should look like
+      const correctData = {
+        id: 1001,
+        departments: [
+          [
+            { name: 'Finance', role: 'Manager' },
+            { name: 'HR', role: 'Director' },
+          ],
+          [
+            { name: 'IT', role: 'Lead' },
+          ],
+        ],
+      };
+
+      const correctValidation = validateData(correctData, nestedArraySchema);
+      console.log('🔍 DEBUGGING: Correct data validation:', {
+        isValid: correctValidation.isValid,
+        errorCount: correctValidation.errors.length,
+      });
+
+      // PROVE THE ISSUE: Validation before normalization should fail
+      expect(validationBeforeNorm.isValid).toBe(false);
+      expect(validationBeforeNorm.errors.length).toBeGreaterThan(0);
+
+      // PROVE THE CORRECT DATA: This should pass
+      expect(correctValidation.isValid).toBe(true);
+
+      // THE KEY QUESTION: Does normalization fix the wrong structure? It shouldn't!
+      // If normalized data passes validation, then normalization is doing too much
+    });
+
+    it('should show how normalization handles different wrong nested array structures', () => {
+      const nestedArraySchema = createSchema([
+        {
+          id: '1',
+          name: 'departments',
+          type: 'array',
+          arrayItemType: {
+            id: '2',
+            name: 'department_array',
+            type: 'array',
+            arrayItemType: {
+              id: '3',
+              name: 'department_item',
+              type: 'object',
+              children: [
+                {
+                  id: '4',
+                  name: 'name',
+                  type: 'text',
+                },
+              ],
+            },
+          },
+        },
+      ]);
+
+      // Wrong Structure 1: Flat strings (what Claude returns)
+      const wrongFlat = { departments: ['Finance', 'HR', 'IT'] };
+      const normalizedFlat = normalizeData(wrongFlat, nestedArraySchema);
+      console.log('🔍 WRONG FLAT normalization:', JSON.stringify(normalizedFlat, null, 2));
+
+      // Wrong Structure 2: Nested strings (partial fix)
+      const wrongNested = { departments: [['Finance'], ['HR']] };
+      const normalizedNested = normalizeData(wrongNested, nestedArraySchema);
+      console.log('🔍 WRONG NESTED normalization:', JSON.stringify(normalizedNested, null, 2));
+
+      // Wrong Structure 3: Single layer array of objects (missing nesting)
+      const wrongSingle = { departments: [{ name: 'Finance' }, { name: 'HR' }] };
+      const normalizedSingle = normalizeData(wrongSingle, nestedArraySchema);
+      console.log('🔍 WRONG SINGLE normalization:', JSON.stringify(normalizedSingle, null, 2));
+
+      // Test validations
+      const flatValidation = validateData(normalizedFlat, nestedArraySchema);
+      const nestedValidation = validateData(normalizedNested, nestedArraySchema);
+      const singleValidation = validateData(normalizedSingle, nestedArraySchema);
+
+      console.log('🔍 Validation results:');
+      console.log('  - Flat array valid:', flatValidation.isValid);
+      console.log('  - Nested strings valid:', nestedValidation.isValid);
+      console.log('  - Single objects valid:', singleValidation.isValid);
+
+      // ALL OF THESE SHOULD FAIL VALIDATION - if any pass, normalization is broken
+      expect(flatValidation.isValid).toBe(false);
+      expect(nestedValidation.isValid).toBe(false);
+      expect(singleValidation.isValid).toBe(false);
+    });
+  });
 });

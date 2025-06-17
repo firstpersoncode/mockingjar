@@ -192,9 +192,12 @@ function normalizeFieldValue(value: unknown, field: SchemaField): unknown {
         if (!Array.isArray(value)) {
           return [value];
         }
-        if (field.arrayItemType) {
+        // For arrays, only normalize individual items if they are objects or primitives
+        // Do NOT try to fix structural issues like nested arrays
+        if (field.arrayItemType && field.arrayItemType.type !== 'array') {
           return value.map(item => normalizeFieldValue(item, field.arrayItemType!));
         }
+        // For nested arrays (array of arrays), don't normalize - let validation catch structural errors
         break;
 
       case 'object':
