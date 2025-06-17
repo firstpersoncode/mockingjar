@@ -7,7 +7,7 @@ import {
 } from '@/types/generation';
 import { validateData, normalizeData, getFailedFields } from '@/lib/validation';
 import type Anthropic from '@anthropic-ai/sdk';
-import { generateSchemaPreview } from '@/lib/schema';
+import { convertSchemaToJson } from '@/lib/schema';
 
 const MAX_RETRIES = 3;
 
@@ -174,7 +174,7 @@ export async function generateJsonDataHybrid(
 export function convertSchemaToJsonStructure(
   fields: SchemaField[]
 ): Record<string, unknown> {
-  return generateSchemaPreview(fields)
+  return convertSchemaToJson(fields)
 }
 
 /**

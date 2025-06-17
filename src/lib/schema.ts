@@ -74,7 +74,7 @@ export const convertSchemaFieldToJson = (
   }
 };
 
-export const generateSchemaPreview = (
+export const convertSchemaToJson = (
   fields: SchemaField[],
   configs: GenerateSchemaPreviewOptions = {}
 ): Record<string, unknown> => {

@@ -1,6 +1,7 @@
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import { JsonSchema, SchemaField } from '@/types/schema';
+import { convertSchemaFieldToJson } from './schema';
 
 // Initialize AJV with format support
 const ajv = new Ajv({ allErrors: true, verbose: true });
@@ -24,16 +25,27 @@ export interface ValidationResult {
  */
 export function convertToJsonSchema(fields: SchemaField[]): Record<string, unknown> {
   const properties: Record<string, unknown> = {};
+  const usedTopLevelKeys = new Set<string>();
   const required: string[] = [];
 
-  for (const field of fields) {
-    const property = convertFieldToJsonSchema(field);
-    properties[field.name] = property;
-    
+  fields.forEach((field) => {
+    let keyName = field.name;
+
+    // Handle duplicate keys by appending a number
+    if (usedTopLevelKeys.has(keyName)) {
+      let counter = 2;
+      while (usedTopLevelKeys.has(`${keyName}_${counter}`)) {
+        counter++;
+      }
+      keyName = `${keyName}_${counter}`;
+    }
+
+    usedTopLevelKeys.add(keyName);
+    properties[keyName] = convertSchemaFieldToJson(field);
     if (field.logic?.required) {
       required.push(field.name);
     }
-  }
+  });
 
   return {
     type: 'object',

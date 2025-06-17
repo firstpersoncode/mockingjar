@@ -37,7 +37,7 @@ import { z } from 'zod';
 import { useSchemas, useGenerateData } from '@/hooks/useSchemas';
 import { GenerationProgress } from '@/types/generation';
 import GenerationProgressComponent from './GenerationProgress';
-import { generateSchemaPreview } from '../utils/preview';
+import { convertSchemaToJson } from '../utils/preview';
 
 const generateSchema = z.object({
   schemaId: z.string().min(1, 'Please select a schema'),
@@ -87,7 +87,7 @@ export default function DataGenerator() {
   const generatePreview = useMemo(
     (): Record<string, unknown> =>
       selectedSchema?.structure?.fields
-        ? generateSchemaPreview(selectedSchema.structure.fields)
+        ? convertSchemaToJson(selectedSchema.structure.fields)
         : {},
     [selectedSchema?.structure?.fields]
   );

@@ -48,7 +48,7 @@ import { SchemaField, JsonSchema } from '@/types/schema';
 import { createSchemaTemplates } from '../lib/template';
 import { format } from 'date-fns';
 import {
-  generateSchemaPreview,
+  convertSchemaToJson,
   findAndUpdateField,
   findAndRemoveField,
 } from '../lib/schema';
@@ -231,7 +231,7 @@ export default function SchemaBuilder({
 
   const generatePreview = useMemo(
     (): Record<string, unknown> =>
-      generateSchemaPreview(schema.fields, { collapsedFields }),
+      convertSchemaToJson(schema.fields, { collapsedFields }),
     [schema.fields, collapsedFields]
   );
 
