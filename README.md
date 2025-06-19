@@ -154,23 +154,7 @@ interface ValidationError {
 }
 ```
 
-### 4. User Interface
-Modern Material UI design with responsive layout:
-
-#### Key Components
-- **Schema Tree View**: Hierarchical field structure with expand/collapse
-- **Field Editor**: Comprehensive field property configuration
-- **JSON Preview**: Live syntax-highlighted preview
-- **Generation Interface**: Prompt input with progress tracking
-- **Data Viewer**: Formatted display of generated data
-- **Export Controls**: Download and copy functionality
-
-#### Responsive Design
-- Mobile-first approach with Material UI breakpoints
-- Collapsible navigation and adaptive layouts
-- Touch-friendly controls and optimized spacing
-
-### 5. Generation Workflow
+### 4. Generation Workflow
 
 #### Hybrid Strategy Details
 1. **Initial Generation**
@@ -209,6 +193,152 @@ interface GenerationResult {
   };
 }
 ```
+
+### 5. 🖥️ User Interface
+
+#### Application Architecture
+MockingJar is built as a **Single Page Application (SPA)** using Next.js 15 App Router with protected routes requiring authentication. The interface follows Material UI design principles with responsive layouts optimized for both desktop and mobile experiences.
+
+#### Authentication Flow
+- **Entry Point**: Landing page (`/`) with application overview
+- **Authentication Check**: Automatic redirect to sign-in if not authenticated
+- **Session Management**: Persistent authentication using NextAuth.js
+- **Protected Routes**: All main application features require valid session
+
+#### Main Application Pages
+
+##### 1. Landing Page (`/`)
+**Purpose**: Application introduction and entry point
+- **Features**:
+  - Next.js welcome interface with project branding
+  - Direct link to MockingJar application (`/mockingjar`)
+
+##### 2. Authentication Redirect (`/mockingjar`)
+**Purpose**: Smart routing based on authentication status
+- **Authenticated Users**: Automatically redirected to Schema Library
+- **Unauthenticated Users**: Automatically redirected to Sign In page
+- **Loading State**: Displays loading spinner during session check
+- **No Direct Content**: Acts as intelligent routing middleware
+
+##### 3. Sign In Page (`/mockingjar/auth/signin`)
+**Purpose**: User authentication and account access
+- **Features**:
+  - **Form Validation**: Email and password validation using Zod schema
+  - **Error Handling**: Clear error messages for authentication failures
+  - **Loading States**: Visual feedback during authentication process
+  - **Responsive Design**: Optimized for mobile and desktop
+  - **Security**: Secure credential handling with NextAuth.js
+- **Layout**: Centered card design with Material UI components
+- **Validation Rules**:
+  - Valid email address format required
+  - Password field mandatory
+  - Real-time form validation feedback
+
+##### 4. Schema Library (`/mockingjar/schema`)
+**Purpose**: Manage and organize saved JSON schemas
+- **Features**:
+  - **Schema List View**: Grid display of all saved schemas
+  - **Create New Schema**: Quick access to schema builder
+  - **Schema Management**: Edit, delete, and duplicate existing schemas
+  - **Search and Filter**: Find schemas by name or properties
+  - **Template Integration**: Access to pre-built schema templates
+- **Layout**: Sidebar navigation + main content area
+- **Components**:
+  - `SchemaList` - Displays schema cards with metadata
+  - `SideBar` - Navigation between application sections
+  - `AppBar` - Page title and contextual actions
+
+##### 5. Schema Builder (`/mockingjar/schema/[id]` or `/mockingjar/schema/new`)
+**Purpose**: Visual JSON schema creation and editing interface
+- **Features**:
+  - **Visual Schema Tree**: Hierarchical field structure with expand/collapse
+  - **Field Type Support**: Text, number, boolean, date, email, URL, array, object
+  - **Constraint Configuration**: Required fields, length limits, patterns, enums
+  - **Nested Structures**: Full support for objects and arrays with unlimited depth
+  - **Real-time Preview**: Live JSON structure preview
+  - **Validation Feedback**: Immediate validation of schema structure
+  - **Auto-save**: Automatic saving of schema changes
+  - **Export Options**: Download schema definition
+- **Dynamic Routing**:
+  - `/schema/new` - Create new schema from scratch
+  - `/schema/[id]` - Edit existing schema by ID
+- **Components**:
+  - `SchemaBuilder` - Main schema editing interface
+  - Field property panels for each data type
+  - Drag-and-drop field organization
+  - Context menus for field operations
+
+##### 6. Data Generator (`/mockingjar/generator`)
+**Purpose**: AI-powered realistic data generation
+- **Features**:
+  - **Schema Selection**: Choose from saved schemas for data generation
+  - **Natural Language Prompts**: Describe desired data characteristics
+  - **Hybrid Generation**: Advanced AI generation with error recovery
+  - **Progress Tracking**: Real-time generation progress feedback
+  - **Result Preview**: Formatted JSON data display with syntax highlighting
+  - **Export Controls**: Download generated data in multiple formats
+  - **Generation History**: Track previous generation attempts
+  - **Metadata Display**: Generation statistics and performance metrics
+- **Generation Process**:
+  - Schema validation before generation
+  - AI prompt processing with Anthropic Claude
+  - Error detection and surgical regeneration
+  - Final validation and result presentation
+- **Components**:
+  - `DataGenerator` - Main generation interface
+  - `GenerationProgress` - Real-time progress indicators
+  - Schema selector dropdown
+  - Prompt input with suggestion system
+
+#### Navigation System
+
+##### Sidebar Navigation
+**Persistent Navigation**: Available on all main application pages
+- **Schema Builder** (`/mockingjar/schema`) - Schema library and management
+- **Data Generator** (`/mockingjar/generator`) - AI data generation interface
+- **History** - Generation history and previous results *(future feature)*
+- **Settings** - User preferences and configuration *(future feature)*
+
+##### Navigation Flow
+```
+Landing (/) 
+    ↓
+Authentication Check (/mockingjar)
+    ↓
+Sign In (/auth/signin) → Schema Library (/schema)
+                              ↓
+                        ┌─────────────────┐
+                        ↓                 ↓
+            Schema Builder (/schema/[id])  Data Generator (/generator)
+                        ↓                 ↓
+                    Edit Schema      Generate Data
+                        ↓                 ↓
+                    Save & Export    Export Results
+```
+
+#### Responsive Design
+- **Desktop Experience** (1200px+)
+- **Tablet Experience** (600px - 1199px)
+- **Mobile Experience** (<600px)
+
+#### Key UI Components
+
+##### Reusable Components
+- **AppBar**: Page titles, breadcrumbs, and contextual actions
+- **SideBar**: Main navigation with active state indicators
+- **SchemaBuilder**: Complex tree-view interface for schema editing
+- **SchemaList**: Grid-based schema management interface
+- **DataGenerator**: AI generation interface with progress tracking
+- **GenerationProgress**: Real-time feedback during data generation
+
+##### Design System
+- **Material UI v7**: Consistent component library
+- **Custom Theme**: Brand-specific color palette and typography
+- **Dark Mode Support**: System preference detection with manual toggle
+- **Accessibility**: WCAG compliant focus management and screen reader support
+- **Performance**: Optimized rendering with React best practices
+
+
 ---
 
 ## 🔧 Installation & Setup
