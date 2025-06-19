@@ -2,38 +2,89 @@ import { SchemaField } from '@/types/schema';
 
 interface GenerateSchemaPreviewOptions {
   collapsedFields?: Set<string>;
+  forPreview?: boolean;
 }
 
 export const convertSchemaFieldToJson = (
   field: SchemaField,
   configs: GenerateSchemaPreviewOptions = {}
 ): unknown => {
-  const { collapsedFields = new Set() } = configs;
+  const { collapsedFields = new Set(), forPreview = false } = configs;
   switch (field.type) {
     case 'text':
+      if (field.logic?.enum) {
+        return `text enum: ${field.logic.enum.join(', ')}`;
+      }
+      if (field.logic?.pattern) {
+        return `text pattern: ${field.logic.pattern}`;
+      }
+      if (field.logic?.minLength || field.logic?.maxLength) {
+        const min = field.logic.minLength;
+        const max = field.logic.maxLength;
+        if (min && max) {
+          return `text with minimum ${min} and maximum ${max} characters`;
+        } else if (min) {
+          return `text with minimum ${min} characters`;
+        } else if (max) {
+          return `text with maximum ${max} characters`;
+        }
+      }
+      return 'text';
     case 'email':
+      if (field.logic?.minLength || field.logic?.maxLength) {
+        const min = field.logic.minLength;
+        const max = field.logic.maxLength;
+        if (min && max) {
+          return `email with minimum ${min} and maximum ${max} characters`;
+        } else if (min) {
+          return `email with minimum ${min} characters`;
+        } else if (max) {
+          return `email with maximum ${max} characters`;
+        }
+      }
+      return 'email';
     case 'url':
-      return field.logic?.enum
-        ? `enum: [${field.logic.enum.join(', ')}]`
-        : 'string';
+      return 'url';
     case 'number':
-      return field.logic?.enum
-        ? `enum: [${field.logic.enum.join(', ')}]`
-        : 'number';
+      if (field.logic?.enum) {
+        return `number enum: ${field.logic.enum.join(', ')}`;
+      }
+      if (field.logic?.min !== undefined || field.logic?.max !== undefined) {
+        const min = field.logic.min;
+        const max = field.logic.max;
+        if (min !== undefined && max !== undefined) {
+          return `number between ${min} and ${max}`;
+        } else if (min !== undefined) {
+          return `number minimum ${min}`;
+        } else if (max !== undefined) {
+          return `number maximum ${max}`;
+        }
+      }
+      return 'number';
     case 'boolean':
       return 'boolean';
     case 'date':
       return 'date';
     case 'array':
-      // Show collapsed indicator if field is collapsed and has arrayItemType
-      if (collapsedFields.has(field.id) && field.arrayItemType) {
-        return `[ ...1 item type ]`;
+      const items = [];
+      const logic = field.logic;
+      
+      // Generate minimum required items
+      const minItems = logic?.minItems || 2;
+      const maxItems = logic?.maxItems || 5;
+      
+      // Create sample items based on constraints
+      const sampleCount = forPreview ? 1 : Math.min(minItems + 1, maxItems);
+      for (let i = 0; i < sampleCount; i++) {
+        items.push(convertSchemaFieldToJson(field.arrayItemType!, configs));
       }
 
-      if (field.arrayItemType) {
-        return [convertSchemaFieldToJson(field.arrayItemType)];
+      // Show collapsed indicator if field is collapsed and has arrayItemType
+      if (collapsedFields.has(field.id) && field.arrayItemType) {
+        return `[ ...${items.length} item${items.length !== 1 ? 's' : ''} ]`;
       }
-      return ['any'];
+
+      return items;
     case 'object':
       const obj: Record<string, unknown> = {};
 
@@ -65,7 +116,7 @@ export const convertSchemaFieldToJson = (
           }
 
           usedKeys.add(keyName);
-          obj[keyName] = convertSchemaFieldToJson(child);
+          obj[keyName] = convertSchemaFieldToJson(child, configs);
         });
       }
       return obj;

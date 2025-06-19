@@ -10,7 +10,7 @@ export interface GenerationProgress {
 
 export interface GenerationResult {
   success: boolean;
-  data?: Record<string, unknown>[];
+  data?: Record<string, unknown>;
   errors?: string[];
   progress: GenerationProgress;
   metadata?: {

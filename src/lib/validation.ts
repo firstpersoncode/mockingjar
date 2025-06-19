@@ -1,255 +1,482 @@
-import Ajv from 'ajv';
-import addFormats from 'ajv-formats';
 import { JsonSchema, SchemaField } from '@/types/schema';
-import { convertSchemaFieldToJson } from './schema';
-
-// Initialize AJV with format support
-const ajv = new Ajv({ allErrors: true, verbose: true });
-addFormats(ajv);
 
 export interface ValidationError {
-  field: string;
-  message: string;
-  value: unknown;
-  path: string;
+  parent: string | null;
+  affectedField: string;
+  reason: string;
+  structure: SchemaField | null;
 }
 
-export interface ValidationResult {
-  isValid: boolean;
-  errors: ValidationError[];
-  data?: Record<string, unknown>;
-}
-
-/**
- * Convert our schema format to JSON Schema format for AJV validation
- */
-export function convertToJsonSchema(fields: SchemaField[]): Record<string, unknown> {
-  const properties: Record<string, unknown> = {};
-  const usedTopLevelKeys = new Set<string>();
-  const required: string[] = [];
-
-  fields.forEach((field) => {
-    let keyName = field.name;
-
-    // Handle duplicate keys by appending a number
-    if (usedTopLevelKeys.has(keyName)) {
-      let counter = 2;
-      while (usedTopLevelKeys.has(`${keyName}_${counter}`)) {
-        counter++;
+// Helper function to get nested field value from data using dot notation
+function getFieldValue(data: Record<string, unknown>, fieldPath: string): unknown {
+  if (!data || !fieldPath) return undefined;
+  
+  const parts = fieldPath.split('.');
+  let current: unknown = data;
+  
+  for (const part of parts) {
+    if (current === null || current === undefined) {
+      return undefined;
+    }
+    
+    // Handle array indices like "tags[0]"
+    const arrayMatch = part.match(/^(.+)\[(\d+)\]$/);
+    if (arrayMatch) {
+      const [, arrayName, index] = arrayMatch;
+      if (typeof current === 'object' && current !== null && !Array.isArray(current)) {
+        const obj = current as Record<string, unknown>;
+        current = obj[arrayName];
+        if (Array.isArray(current)) {
+          const idx = parseInt(index);
+          current = idx < current.length ? current[idx] : undefined;
+        } else {
+          return undefined;
+        }
+      } else {
+        return undefined;
       }
-      keyName = `${keyName}_${counter}`;
+    } else {
+      if (typeof current === 'object' && current !== null && !Array.isArray(current)) {
+        const obj = current as Record<string, unknown>;
+        current = obj[part];
+      } else {
+        return undefined;
+      }
     }
-
-    usedTopLevelKeys.add(keyName);
-    properties[keyName] = convertSchemaFieldToJson(field);
-    if (field.logic?.required) {
-      required.push(field.name);
-    }
-  });
-
-  return {
-    type: 'object',
-    properties,
-    required,
-    additionalProperties: false
-  };
+  }
+  
+  return current;
 }
 
-/**
- * Convert a single field to JSON Schema property
- */
-function convertFieldToJsonSchema(field: SchemaField): Record<string, unknown> {
-  const property: Record<string, unknown> = {};
+// Helper function to check if a field exists in data
+function hasField(data: Record<string, unknown>, fieldPath: string): boolean {
+  if (!data || !fieldPath) return false;
+  
+  const parts = fieldPath.split('.');
+  let current: unknown = data;
+  
+  for (const part of parts) {
+    if (current === null || current === undefined) {
+      return false;
+    }
+    
+    const arrayMatch = part.match(/^(.+)\[(\d+)\]$/);
+    if (arrayMatch) {
+      const [, arrayName, index] = arrayMatch;
+      if (typeof current === 'object' && current !== null && !Array.isArray(current)) {
+        const obj = current as Record<string, unknown>;
+        if (!(arrayName in obj)) return false;
+        current = obj[arrayName];
+        if (!Array.isArray(current)) return false;
+        const idx = parseInt(index);
+        if (idx >= current.length) return false;
+        current = current[idx];
+      } else {
+        return false;
+      }
+    } else {
+      if (typeof current === 'object' && current !== null && !Array.isArray(current)) {
+        const obj = current as Record<string, unknown>;
+        if (!(part in obj)) return false;
+        current = obj[part];
+      } else {
+        return false;
+      }
+    }
+  }
+  
+  return true;
+}
 
+// Main validation function
+export function jsonValidator(data: Record<string, unknown>, schema: JsonSchema): ValidationError[] {
+  const errors: ValidationError[] = [];
+  
+  // Validate each field in the schema
+  for (const field of schema.fields) {
+    validateField(data, field, '', errors);
+  }
+  
+  // Check for unidentified fields in the data
+  checkUnidentifiedFields(data, schema.fields, '', errors);
+  
+  return errors;
+}
+
+// Recursive field validation
+function validateField(
+  data: Record<string, unknown>, 
+  field: SchemaField, 
+  parentPath: string, 
+  errors: ValidationError[]
+): void {
+  const fieldPath = parentPath ? `${parentPath}.${field.name}` : field.name;
+  const value = getFieldValue(data, fieldPath);
+  const exists = hasField(data, fieldPath);
+  
+  // Check if field should be required
+  const isRequired = field.logic?.required || 
+                    (field.type === 'object' && field.children && field.children.length > 0) ||
+                    (field.type === 'array' && field.arrayItemType);
+  
+  // Check required fields
+  if (isRequired && !exists) {
+    errors.push({
+      parent: parentPath || null,
+      affectedField: fieldPath,
+      reason: 'missing required field',
+      structure: field
+    });
+    return;
+  }
+  
+  // If field doesn't exist and is not required, skip validation
+  if (!exists) return;
+  
+  // Validate field type and constraints
+  validateFieldType(value, field, fieldPath, parentPath, errors);
+  
+  // Validate children for object types
+  if (field.type === 'object' && field.children && value && typeof value === 'object') {
+    for (const childField of field.children) {
+      validateField(data, childField, fieldPath, errors);
+    }
+  }
+  
+  // Validate array items
+  if (field.type === 'array' && field.arrayItemType && Array.isArray(value)) {
+    validateArrayField(data, field, fieldPath, parentPath, errors);
+  }
+}
+
+// Validate field type and constraints
+function validateFieldType(
+  value: unknown, 
+  field: SchemaField, 
+  fieldPath: string, 
+  parentPath: string, 
+  errors: ValidationError[]
+): void {
+  // Type validation
   switch (field.type) {
     case 'text':
-      property.type = 'string';
-      if (field.logic?.minLength) property.minLength = field.logic.minLength;
-      if (field.logic?.maxLength) property.maxLength = field.logic.maxLength;
-      if (field.logic?.pattern) property.pattern = field.logic.pattern;
-      if (field.logic?.enum) property.enum = field.logic.enum;
+      if (typeof value !== 'string') {
+        errors.push({
+          parent: parentPath || null,
+          affectedField: fieldPath,
+          reason: 'malformed type',
+          structure: field
+        });
+        return;
+      }
       break;
-
-    case 'email':
-      property.type = 'string';
-      property.format = 'email';
-      break;
-
-    case 'url':
-      property.type = 'string';
-      property.format = 'uri';
-      break;
-
-    case 'number':
-      property.type = 'number';
-      if (field.logic?.min !== undefined) property.minimum = field.logic.min;
-      if (field.logic?.max !== undefined) property.maximum = field.logic.max;
-      break;
-
-    case 'boolean':
-      property.type = 'boolean';
-      break;
-
-    case 'date':
-      property.type = 'string';
-      property.format = 'date-time';
-      break;
-
-    case 'array':
-      property.type = 'array';
-      if (field.logic?.minItems) property.minItems = field.logic.minItems;
-      if (field.logic?.maxItems) property.maxItems = field.logic.maxItems;
       
-      if (field.arrayItemType) {
-        property.items = convertFieldToJsonSchema(field.arrayItemType);
-      } else {
-        property.items = { type: 'string' };
+    case 'number':
+      if (typeof value !== 'number') {
+        errors.push({
+          parent: parentPath || null,
+          affectedField: fieldPath,
+          reason: 'malformed type',
+          structure: field
+        });
+        return;
       }
       break;
-
+      
+    case 'boolean':
+      if (typeof value !== 'boolean') {
+        errors.push({
+          parent: parentPath || null,
+          affectedField: fieldPath,
+          reason: 'malformed type',
+          structure: field
+        });
+        return;
+      }
+      break;
+      
+    case 'email':
+      if (typeof value !== 'string' || !value.includes('@')) {
+        errors.push({
+          parent: parentPath || null,
+          affectedField: fieldPath,
+          reason: 'malformed type',
+          structure: field
+        });
+        return;
+      }
+      break;
+      
+    case 'url':
+      if (typeof value !== 'string' || !value.startsWith('http')) {
+        errors.push({
+          parent: parentPath || null,
+          affectedField: fieldPath,
+          reason: 'malformed type',
+          structure: field
+        });
+        return;
+      }
+      break;
+      
+    case 'date':
+      if (typeof value !== 'string' || isNaN(Date.parse(value))) {
+        errors.push({
+          parent: parentPath || null,
+          affectedField: fieldPath,
+          reason: 'malformed type',
+          structure: field
+        });
+        return;
+      }
+      break;
+      
+    case 'array':
+      if (!Array.isArray(value)) {
+        errors.push({
+          parent: parentPath || null,
+          affectedField: fieldPath,
+          reason: 'malformed type',
+          structure: field
+        });
+        return;
+      }
+      break;
+      
     case 'object':
-      property.type = 'object';
-      if (field.children && field.children.length > 0) {
-        const nestedSchema = convertToJsonSchema(field.children);
-        property.properties = nestedSchema.properties;
-        property.required = nestedSchema.required;
-        property.additionalProperties = false;
-      } else {
-        property.additionalProperties = true;
+      if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+        errors.push({
+          parent: parentPath || null,
+          affectedField: fieldPath,
+          reason: 'malformed type',
+          structure: field
+        });
+        return;
       }
       break;
   }
-
-  return property;
+  
+  // Constraint validation
+  if (field.logic) {
+    validateFieldConstraints(value, field, fieldPath, parentPath, errors);
+  }
 }
 
-/**
- * Validate data against schema and return detailed results
- */
-export function validateData(data: unknown, schema: JsonSchema): ValidationResult {
-  try {
-    const jsonSchema = convertToJsonSchema(schema.fields);
-    const validate = ajv.compile(jsonSchema);
-    const isValid = validate(data);
-
-    if (isValid) {
-      return { isValid: true, errors: [], data: data as Record<string, unknown> };
+// Validate field constraints (length, min/max, enum, etc.)
+function validateFieldConstraints(
+  value: unknown, 
+  field: SchemaField, 
+  fieldPath: string, 
+  parentPath: string, 
+  errors: ValidationError[]
+): void {
+  const logic = field.logic!;
+  
+  // String constraints
+  if ((field.type === 'text' || field.type === 'email' || field.type === 'url') && typeof value === 'string') {
+    if (logic.minLength && value.length < logic.minLength) {
+      errors.push({
+        parent: parentPath || null,
+        affectedField: fieldPath,
+        reason: `string too short (minimum ${logic.minLength} characters)`,
+        structure: field
+      });
     }
-
-    const errors: ValidationError[] = (validate.errors || []).map(error => ({
-      field: error.instancePath.replace(/^\//, '').replace(/\//g, '.') || 'root',
-      message: error.message || 'Validation error',
-      value: error.data,
-      path: error.instancePath || ''
-    }));
-
-    return { isValid: false, errors };
-  } catch (error) {
-    return {
-      isValid: false,
-      errors: [{
-        field: 'schema',
-        message: `Schema validation error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        value: data,
-        path: ''
-      }]
-    };
-  }
-}
-
-/**
- * Normalize common data format issues
- */
-export function normalizeData(data: unknown, schema: JsonSchema): unknown {
-  if (!data || typeof data !== 'object') return data;
-
-  if (Array.isArray(data)) {
-    return data.map(item => normalizeData(item, schema));
-  }
-
-  const normalized = { ...data as Record<string, unknown> };
-
-  for (const field of schema.fields) {
-    if (field.name in normalized) {
-      normalized[field.name] = normalizeFieldValue(normalized[field.name], field);
+    
+    if (logic.maxLength && value.length > logic.maxLength) {
+      errors.push({
+        parent: parentPath || null,
+        affectedField: fieldPath,
+        reason: `string too long (maximum ${logic.maxLength} characters)`,
+        structure: field
+      });
+    }
+    
+    if (logic.enum && !logic.enum.includes(value)) {
+      errors.push({
+        parent: parentPath || null,
+        affectedField: fieldPath,
+        reason: 'value not allowed',
+        structure: field
+      });
     }
   }
-
-  return normalized;
+  
+  // Number constraints
+  if (field.type === 'number' && typeof value === 'number') {
+    if (logic.min !== undefined && value < logic.min) {
+      errors.push({
+        parent: parentPath || null,
+        affectedField: fieldPath,
+        reason: `number below minimum (${logic.min})`,
+        structure: field
+      });
+    }
+    
+    if (logic.max !== undefined && value > logic.max) {
+      errors.push({
+        parent: parentPath || null,
+        affectedField: fieldPath,
+        reason: `number above maximum (${logic.max})`,
+        structure: field
+      });
+    }
+  }
+  
+  // Array constraints
+  if (field.type === 'array' && Array.isArray(value)) {
+    if (logic.minItems && value.length < logic.minItems) {
+      errors.push({
+        parent: parentPath || null,
+        affectedField: fieldPath,
+        reason: `array too short: minimum ${logic.minItems} items required`,
+        structure: field
+      });
+    }
+    
+    if (logic.maxItems && value.length > logic.maxItems) {
+      errors.push({
+        parent: parentPath || null,
+        affectedField: fieldPath,
+        reason: `array too long: maximum ${logic.maxItems} items allowed`,
+        structure: field
+      });
+    }
+  }
 }
 
-/**
- * Normalize a single field value based on its type
- */
-function normalizeFieldValue(value: unknown, field: SchemaField): unknown {
-  if (value === null || value === undefined) return value;
-
-  try {
-    switch (field.type) {
-      case 'number':
-        if (typeof value === 'string' && !isNaN(Number(value))) {
-          return Number(value);
+// Validate array field and its items
+function validateArrayField(
+  data: Record<string, unknown> | unknown[], 
+  field: SchemaField, 
+  fieldPath: string, 
+  parentPath: string, 
+  errors: ValidationError[]
+): void {
+  const value = getFieldValue(data as Record<string, unknown>, fieldPath);
+  if (!Array.isArray(value) || !field.arrayItemType) return;
+  
+  const initialErrorCount = errors.length;
+  
+  // Validate each array item
+  for (let i = 0; i < value.length; i++) {
+    const itemPath = `${fieldPath}[${i}]`;
+    const itemValue = value[i];
+    
+    // Validate the array item against its schema
+    validateFieldType(itemValue, field.arrayItemType, itemPath, fieldPath, errors);
+    
+    // If array item is an object, validate its children directly
+    if (field.arrayItemType.type === 'object' && field.arrayItemType.children && 
+        typeof itemValue === 'object' && itemValue !== null && !Array.isArray(itemValue)) {
+      
+      const itemObject = itemValue as Record<string, unknown>;
+      
+      for (const childField of field.arrayItemType.children) {
+        const childFieldPath = `${itemPath}.${childField.name}`;
+        const childValue = itemObject[childField.name];
+        const childExists = childField.name in itemObject;
+        
+        // Check required fields
+        if ((childField.logic?.required || childField.type === 'object' || childField.type === 'array') && !childExists) {
+          errors.push({
+            parent: itemPath,
+            affectedField: childFieldPath,
+            reason: 'missing required field',
+            structure: childField
+          });
+          continue;
         }
-        break;
-
-      case 'boolean':
-        if (typeof value === 'string') {
-          const lower = value.toLowerCase();
-          if (lower === 'true' || lower === '1') return true;
-          if (lower === 'false' || lower === '0') return false;
-        }
-        break;
-
-      case 'array':
-        if (!Array.isArray(value)) {
-          return [value];
-        }
-        // For arrays, only normalize individual items if they are objects or primitives
-        // Do NOT try to fix structural issues like nested arrays
-        if (field.arrayItemType && field.arrayItemType.type !== 'array') {
-          return value.map(item => normalizeFieldValue(item, field.arrayItemType!));
-        }
-        // For nested arrays (array of arrays), don't normalize - let validation catch structural errors
-        break;
-
-      case 'object':
-        if (typeof value === 'object' && !Array.isArray(value) && field.children) {
-          const nestedSchema: JsonSchema = { name: '', fields: field.children };
-          return normalizeData(value, nestedSchema);
-        }
-        break;
-
-      case 'date':
-        if (typeof value === 'string') {
-          const date = new Date(value);
-          if (!isNaN(date.getTime())) {
-            return date.toISOString();
+        
+        // If field doesn't exist and is not required, skip validation
+        if (!childExists) continue;
+        
+        // Validate field type and constraints
+        validateFieldType(childValue, childField, childFieldPath, itemPath, errors);
+        
+        // If child is an object, validate its children recursively
+        if (childField.type === 'object' && childField.children && 
+            typeof childValue === 'object' && childValue !== null && !Array.isArray(childValue)) {
+          
+          const childObject = childValue as Record<string, unknown>;
+          for (const grandChildField of childField.children) {
+            const grandChildPath = `${childFieldPath}.${grandChildField.name}`;
+            const grandChildValue = childObject[grandChildField.name];
+            const grandChildExists = grandChildField.name in childObject;
+            
+            // Check required fields
+            if ((grandChildField.logic?.required || grandChildField.type === 'object' || grandChildField.type === 'array') && !grandChildExists) {
+              errors.push({
+                parent: childFieldPath,
+                affectedField: grandChildPath,
+                reason: 'missing required field',
+                structure: grandChildField
+              });
+              continue;
+            }
+            
+            if (!grandChildExists) continue;
+            
+            validateFieldType(grandChildValue, grandChildField, grandChildPath, childFieldPath, errors);
           }
         }
-        break;
+        
+        // If child is an array, validate recursively
+        if (childField.type === 'array' && childField.arrayItemType && Array.isArray(childValue)) {
+          validateArrayField(data, childField, childFieldPath, itemPath, errors);
+        }
+      }
     }
-  } catch (error) {
-    console.warn(`Failed to normalize field ${field.name}:`, error);
+    
+    // If array item is an array, validate recursively
+    if (field.arrayItemType.type === 'array' && field.arrayItemType.arrayItemType && Array.isArray(itemValue)) {
+      validateArrayField(data, field.arrayItemType, itemPath, fieldPath, errors);
+    }
   }
-
-  return value;
+  
+  // If any array items are invalid, mark the entire array as malformed
+  if (errors.length > initialErrorCount) {
+    errors.push({
+      parent: parentPath || null,
+      affectedField: fieldPath,
+      reason: 'malformed type',
+      structure: field
+    });
+  }
 }
 
-/**
- * Get failed field paths from validation errors
- */
-export function getFailedFields(errors: ValidationError[]): string[] {
-  return [...new Set(errors.map(error => error.field).filter(field => field !== 'root'))];
-}
-
-/**
- * Group validation errors by field path
- */
-export function groupErrorsByField(errors: ValidationError[]): Record<string, ValidationError[]> {
-  return errors.reduce((groups, error) => {
-    const field = error.field || 'root';
-    if (!groups[field]) groups[field] = [];
-    groups[field].push(error);
-    return groups;
-  }, {} as Record<string, ValidationError[]>);
+// Check for unidentified fields in the data
+function checkUnidentifiedFields(
+  data: Record<string, unknown>, 
+  schemaFields: SchemaField[], 
+  parentPath: string, 
+  errors: ValidationError[]
+): void {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return;
+  
+  const validFieldNames = schemaFields.map(field => field.name);
+  
+  for (const key in data) {
+    if (data.hasOwnProperty(key)) {
+      const fieldPath = parentPath ? `${parentPath}.${key}` : key;
+      
+      if (!validFieldNames.includes(key)) {
+        errors.push({
+          parent: parentPath || null,
+          affectedField: fieldPath,
+          reason: 'Unidentified field',
+          structure: null
+        });
+      } else {
+        // Recursively check nested objects
+        const schemaField = schemaFields.find(field => field.name === key);
+        const fieldValue = data[key];
+        
+        if (schemaField?.type === 'object' && schemaField.children && 
+            typeof fieldValue === 'object' && fieldValue !== null && !Array.isArray(fieldValue)) {
+          checkUnidentifiedFields(fieldValue as Record<string, unknown>, schemaField.children, fieldPath, errors);
+        }
+      }
+    }
+  }
 }

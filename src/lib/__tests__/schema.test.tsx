@@ -1,6 +1,6 @@
 import { SchemaField } from '@/types/schema';
 import { v4 as uuidv4 } from 'uuid';
-import { findAndUpdateField, findAndRemoveField } from '../schema';
+import { findAndUpdateField, findAndRemoveField, convertSchemaFieldToJson, convertSchemaToJson } from '../schema';
 
 // Mock the hooks
 jest.mock('@/hooks/useSchemas', () => ({
@@ -930,6 +930,572 @@ describe('SchemaBuilder Field Management Logic', () => {
       expect(result[0].arrayItemType!.arrayItemType!.type).toBe('object');
       expect(result[0].arrayItemType!.arrayItemType!.children).toHaveLength(1);
       expect(result[0].arrayItemType!.arrayItemType!.children![0].name).toBe('newChild');
+    });
+  });
+
+  // Add comprehensive tests for convertSchemaFieldToJson
+  describe('convertSchemaFieldToJson Enhanced Tests', () => {
+    describe('Text Field Tests', () => {
+      test('should handle text field with enum values', () => {
+        const field: SchemaField = {
+          id: uuidv4(),
+          name: 'status',
+          type: 'text',
+          logic: {
+            enum: ['APPROVED', 'REVIEW', 'PUBLISHED']
+          }
+        };
+        
+        const result = convertSchemaFieldToJson(field);
+        expect(result).toBe('text enum: APPROVED, REVIEW, PUBLISHED');
+      });
+
+      test('should handle text field with min and max length', () => {
+        const field: SchemaField = {
+          id: uuidv4(),
+          name: 'title',
+          type: 'text',
+          logic: {
+            minLength: 5,
+            maxLength: 100
+          }
+        };
+        
+        const result = convertSchemaFieldToJson(field);
+        expect(result).toBe('text with minimum 5 and maximum 100 characters');
+      });
+
+      test('should handle text field with only min length', () => {
+        const field: SchemaField = {
+          id: uuidv4(),
+          name: 'description',
+          type: 'text',
+          logic: {
+            minLength: 50
+          }
+        };
+        
+        const result = convertSchemaFieldToJson(field);
+        expect(result).toBe('text with minimum 50 characters');
+      });
+
+      test('should handle text field with only max length', () => {
+        const field: SchemaField = {
+          id: uuidv4(),
+          name: 'summary',
+          type: 'text',
+          logic: {
+            maxLength: 200
+          }
+        };
+        
+        const result = convertSchemaFieldToJson(field);
+        expect(result).toBe('text with maximum 200 characters');
+      });
+
+      test('should handle text field with pattern', () => {
+        const field: SchemaField = {
+          id: uuidv4(),
+          name: 'code',
+          type: 'text',
+          logic: {
+            pattern: '^[A-Z]{3}-[0-9]{3}$'
+          }
+        };
+        
+        const result = convertSchemaFieldToJson(field);
+        expect(result).toBe('text pattern: ^[A-Z]{3}-[0-9]{3}$');
+      });
+
+      test('should handle basic text field without constraints', () => {
+        const field: SchemaField = {
+          id: uuidv4(),
+          name: 'note',
+          type: 'text'
+        };
+        
+        const result = convertSchemaFieldToJson(field);
+        expect(result).toBe('text');
+      });
+    });
+
+    describe('Email Field Tests', () => {
+      test('should handle email field with length constraints', () => {
+        const field: SchemaField = {
+          id: uuidv4(),
+          name: 'email',
+          type: 'email',
+          logic: {
+            minLength: 5,
+            maxLength: 50
+          }
+        };
+        
+        const result = convertSchemaFieldToJson(field);
+        expect(result).toBe('email with minimum 5 and maximum 50 characters');
+      });
+
+      test('should handle basic email field', () => {
+        const field: SchemaField = {
+          id: uuidv4(),
+          name: 'contactEmail',
+          type: 'email'
+        };
+        
+        const result = convertSchemaFieldToJson(field);
+        expect(result).toBe('email');
+      });
+    });
+
+    describe('Number Field Tests', () => {
+      test('should handle number field with enum values', () => {
+        const field: SchemaField = {
+          id: uuidv4(),
+          name: 'rating',
+          type: 'number',
+          logic: {
+            enum: ['1', '2', '3', '4', '5']
+          }
+        };
+        
+        const result = convertSchemaFieldToJson(field);
+        expect(result).toBe('number enum: 1, 2, 3, 4, 5');
+      });
+
+      test('should handle number field with min and max values', () => {
+        const field: SchemaField = {
+          id: uuidv4(),
+          name: 'age',
+          type: 'number',
+          logic: {
+            min: 18,
+            max: 65
+          }
+        };
+        
+        const result = convertSchemaFieldToJson(field);
+        expect(result).toBe('number between 18 and 65');
+      });
+
+      test('should handle number field with only min value', () => {
+        const field: SchemaField = {
+          id: uuidv4(),
+          name: 'price',
+          type: 'number',
+          logic: {
+            min: 0
+          }
+        };
+        
+        const result = convertSchemaFieldToJson(field);
+        expect(result).toBe('number minimum 0');
+      });
+
+      test('should handle number field with only max value', () => {
+        const field: SchemaField = {
+          id: uuidv4(),
+          name: 'discount',
+          type: 'number',
+          logic: {
+            max: 100
+          }
+        };
+        
+        const result = convertSchemaFieldToJson(field);
+        expect(result).toBe('number maximum 100');
+      });
+    });
+
+    describe('Array Field Tests', () => {
+      test('should handle array with text items and constraints', () => {
+        const field: SchemaField = {
+          id: uuidv4(),
+          name: 'tags',
+          type: 'array',
+          logic: {
+            minItems: 2,
+            maxItems: 5
+          },
+          arrayItemType: {
+            id: uuidv4(),
+            name: 'tag',
+            type: 'text',
+            logic: {
+              minLength: 3,
+              maxLength: 20
+            }
+          }
+        };
+        
+        const result = convertSchemaFieldToJson(field) as unknown[];
+        expect(Array.isArray(result)).toBe(true);
+        expect(result.length).toBe(3); // min + 1, but not exceeding max
+        expect(result[0]).toBe('text with minimum 3 and maximum 20 characters');
+      });
+
+      test('should handle nested array structure', () => {
+        const field: SchemaField = {
+          id: uuidv4(),
+          name: 'matrix',
+          type: 'array',
+          logic: {
+            minItems: 2,
+            maxItems: 3
+          },
+          arrayItemType: {
+            id: uuidv4(),
+            name: 'row',
+            type: 'array',
+            logic: {
+              minItems: 2,
+              maxItems: 4
+            },
+            arrayItemType: {
+              id: uuidv4(),
+              name: 'cell',
+              type: 'number'
+            }
+          }
+        };
+        
+        const result = convertSchemaFieldToJson(field) as unknown[][];
+        expect(Array.isArray(result)).toBe(true);
+        expect(result.length).toBe(3);
+        expect(Array.isArray(result[0])).toBe(true);
+        expect(result[0].length).toBe(3);
+        expect(result[0][0]).toBe('number');
+      });
+
+      test('should handle array of objects', () => {
+        const field: SchemaField = {
+          id: uuidv4(),
+          name: 'users',
+          type: 'array',
+          logic: {
+            minItems: 1,
+            maxItems: 3
+          },
+          arrayItemType: {
+            id: uuidv4(),
+            name: 'user',
+            type: 'object',
+            children: [
+              {
+                id: uuidv4(),
+                name: 'name',
+                type: 'text',
+                logic: { minLength: 2, maxLength: 50 }
+              },
+              {
+                id: uuidv4(),
+                name: 'email',
+                type: 'email'
+              }
+            ]
+          }
+        };
+        
+        const result = convertSchemaFieldToJson(field) as unknown[];
+        expect(Array.isArray(result)).toBe(true);
+        expect(result.length).toBe(2); // min + 1
+        expect(typeof result[0]).toBe('object');
+        const userObj = result[0] as Record<string, unknown>;
+        expect(userObj.name).toBe('text with minimum 2 and maximum 50 characters');
+        expect(userObj.email).toBe('email');
+      });
+
+      test('should handle collapsed array display', () => {
+        const field: SchemaField = {
+          id: 'collapsed-array',
+          name: 'items',
+          type: 'array',
+          arrayItemType: {
+            id: uuidv4(),
+            name: 'item',
+            type: 'text'
+          }
+        };
+        
+        const collapsedFields = new Set(['collapsed-array']);
+        const result = convertSchemaFieldToJson(field, { collapsedFields });
+        expect(result).toBe('[ ...3 items ]');
+      });
+    });
+
+    describe('Object Field Tests', () => {
+      test('should handle complex nested object structure', () => {
+        const field: SchemaField = {
+          id: uuidv4(),
+          name: 'user',
+          type: 'object',
+          children: [
+            {
+              id: uuidv4(),
+              name: 'profile',
+              type: 'object',
+              children: [
+                {
+                  id: uuidv4(),
+                  name: 'name',
+                  type: 'text',
+                  logic: { minLength: 2, maxLength: 100 }
+                },
+                {
+                  id: uuidv4(),
+                  name: 'age',
+                  type: 'number',
+                  logic: { min: 18, max: 120 }
+                }
+              ]
+            },
+            {
+              id: uuidv4(),
+              name: 'settings',
+              type: 'object',
+              children: [
+                {
+                  id: uuidv4(),
+                  name: 'theme',
+                  type: 'text',
+                  logic: { enum: ['light', 'dark'] }
+                }
+              ]
+            }
+          ]
+        };
+        
+        const result = convertSchemaFieldToJson(field) as Record<string, unknown>;
+        expect(typeof result).toBe('object');
+        expect(result.profile).toBeDefined();
+        expect(result.settings).toBeDefined();
+        
+        const profile = result.profile as Record<string, unknown>;
+        expect(profile.name).toBe('text with minimum 2 and maximum 100 characters');
+        expect(profile.age).toBe('number between 18 and 120');
+        
+        const settings = result.settings as Record<string, unknown>;
+        expect(settings.theme).toBe('text enum: light, dark');
+      });
+
+      test('should handle collapsed object display', () => {
+        const field: SchemaField = {
+          id: 'collapsed-object',
+          name: 'config',
+          type: 'object',
+          children: [
+            { id: uuidv4(), name: 'field1', type: 'text' },
+            { id: uuidv4(), name: 'field2', type: 'number' },
+            { id: uuidv4(), name: 'field3', type: 'boolean' }
+          ]
+        };
+        
+        const collapsedFields = new Set(['collapsed-object']);
+        const result = convertSchemaFieldToJson(field, { collapsedFields });
+        expect(result).toBe('{ ...3 fields }');
+      });
+
+      test('should handle duplicate field names', () => {
+        const field: SchemaField = {
+          id: uuidv4(),
+          name: 'container',
+          type: 'object',
+          children: [
+            { id: uuidv4(), name: 'item', type: 'text' },
+            { id: uuidv4(), name: 'item', type: 'number' },
+            { id: uuidv4(), name: 'item', type: 'boolean' }
+          ]
+        };
+        
+        const result = convertSchemaFieldToJson(field) as Record<string, unknown>;
+        expect(result.item).toBe('text');
+        expect(result.item_2).toBe('number');
+        expect(result.item_3).toBe('boolean');
+      });
+    });
+
+    describe('Edge Cases and Error Handling', () => {
+      test('should handle empty object without children', () => {
+        const field: SchemaField = {
+          id: uuidv4(),
+          name: 'emptyObject',
+          type: 'object'
+        };
+        
+        const result = convertSchemaFieldToJson(field);
+        expect(result).toEqual({});
+      });    test('should handle unknown field type', () => {
+      const field = {
+        id: uuidv4(),
+        name: 'unknown',
+        type: 'invalid'
+      } as unknown as SchemaField;
+      
+      const result = convertSchemaFieldToJson(field);
+      expect(result).toBe('unknown');
+    });
+
+      test('should handle field with zero min/max constraints', () => {
+        const field: SchemaField = {
+          id: uuidv4(),
+          name: 'counter',
+          type: 'number',
+          logic: {
+            min: 0,
+            max: 0
+          }
+        };
+        
+        const result = convertSchemaFieldToJson(field);
+        expect(result).toBe('number between 0 and 0');
+      });
+
+      test('should handle array with extreme constraints', () => {
+        const field: SchemaField = {
+          id: uuidv4(),
+          name: 'largeArray',
+          type: 'array',
+          logic: {
+            minItems: 100,
+            maxItems: 1000
+          },
+          arrayItemType: {
+            id: uuidv4(),
+            name: 'item',
+            type: 'text'
+          }
+        };
+        
+        const result = convertSchemaFieldToJson(field) as unknown[];
+        expect(Array.isArray(result)).toBe(true);
+        expect(result.length).toBe(101); // min + 1
+      });
+    });
+
+    describe('Real World Scenarios', () => {
+      test('should handle blog post schema as in TEST.md', () => {
+        const blogSchema: SchemaField[] = [
+          {
+            id: '0',
+            name: 'office',
+            type: 'object',
+            children: [
+              {
+                id: '01',
+                name: 'tags',
+                type: 'array',
+                logic: { minItems: 2, maxItems: 5 },
+                arrayItemType: {
+                  id: '011',
+                  name: 'items',
+                  type: 'array',
+                  logic: { minItems: 2, maxItems: 5 },
+                  arrayItemType: {
+                    id: '0111',
+                    name: 'item',
+                    type: 'object',
+                    children: [
+                      {
+                        id: '01111',
+                        name: 'title',
+                        type: 'text',
+                        logic: { required: true, minLength: 5, maxLength: 100 }
+                      },
+                      {
+                        id: '01112',
+                        name: 'description',
+                        type: 'text',
+                        logic: { required: true, minLength: 50 }
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            id: '5',
+            name: 'status',
+            type: 'text',
+            logic: {
+              required: true,
+              enum: ['APPROVED', 'REVIEW', 'PUBLISHED']
+            }
+          }
+        ];
+        
+        const result = convertSchemaToJson(blogSchema);
+        
+        // Check office structure
+        expect(result.office).toBeDefined();
+        const office = result.office as Record<string, unknown>;
+        expect(office.tags).toBeDefined();
+        
+        const tags = office.tags as unknown[][];
+        expect(Array.isArray(tags)).toBe(true);
+        expect(tags.length).toBe(3); // min(2) + 1
+        expect(Array.isArray(tags[0])).toBe(true);
+        expect(tags[0].length).toBe(3); // min(2) + 1
+        
+        const item = tags[0][0] as Record<string, unknown>;
+        expect(item.title).toBe('text with minimum 5 and maximum 100 characters');
+        expect(item.description).toBe('text with minimum 50 characters');
+        
+        // Check status
+        expect(result.status).toBe('text enum: APPROVED, REVIEW, PUBLISHED');
+      });
+
+      test('should handle e-commerce product schema', () => {
+        const productSchema: SchemaField[] = [
+          {
+            id: uuidv4(),
+            name: 'product',
+            type: 'object',
+            children: [
+              {
+                id: uuidv4(),
+                name: 'name',
+                type: 'text',
+                logic: { required: true, minLength: 2, maxLength: 100 }
+              },
+              {
+                id: uuidv4(),
+                name: 'price',
+                type: 'number',
+                logic: { required: true, min: 0.01 }
+              },
+              {
+                id: uuidv4(),
+                name: 'categories',
+                type: 'array',
+                logic: { minItems: 1, maxItems: 3 },
+                arrayItemType: {
+                  id: uuidv4(),
+                  name: 'category',
+                  type: 'text',
+                  logic: { enum: ['Electronics', 'Clothing', 'Books', 'Home'] }
+                }
+              },
+              {
+                id: uuidv4(),
+                name: 'inStock',
+                type: 'boolean'
+              }
+            ]
+          }
+        ];
+        
+        const result = convertSchemaToJson(productSchema);
+        const product = result.product as Record<string, unknown>;
+        
+        expect(product.name).toBe('text with minimum 2 and maximum 100 characters');
+        expect(product.price).toBe('number minimum 0.01');
+        expect(product.inStock).toBe('boolean');
+        
+        const categories = product.categories as unknown[];
+        expect(Array.isArray(categories)).toBe(true);
+        expect(categories.length).toBe(2); // min(1) + 1
+        expect(categories[0]).toBe('text enum: Electronics, Clothing, Books, Home');
+      });
     });
   });
 });
