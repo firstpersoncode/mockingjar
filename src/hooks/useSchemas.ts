@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { JsonSchema, SavedSchema } from '@/types/schema';
-import { GenerationProgress } from '@/types/generation';
+import { GenerationProgress, GenerationResult } from '@/types/generation';
 
 export interface GenerateDataParams {
   schema: JsonSchema;
@@ -9,18 +9,8 @@ export interface GenerateDataParams {
   onProgress?: (progress: GenerationProgress) => void;
 }
 
-export interface GenerateDataResult {
-  success: boolean;
-  data?: Record<string, unknown>[];
-  metadata?: {
-    totalFields: number;
-    validFields: number;
-    regeneratedFields: string[];
-    attempts: number;
-    generationTime: number;
-  };
+export interface GenerateDataResult extends GenerationResult {
   progressSteps?: GenerationProgress[];
-  errors?: string[];
 }
 
 export function useSchemas() {
@@ -140,10 +130,10 @@ export function useGenerateData() {
 
       return result;
     },
-    retry: (failureCount, error) => {
-      // Retry up to 2 times for network errors, but not for validation errors
-      return failureCount < 2 && !error.message.includes('validation');
-    },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    // retry: (failureCount, error) => {
+    //   // Retry up to 2 times for network errors, but not for validation errors
+    //   return failureCount < 2 && !error.message.includes('validation');
+    // },
+    // retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 }

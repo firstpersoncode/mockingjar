@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { JsonSchema } from '@/types/schema';
 import { GenerationProgress } from '@/types/generation';
-import { generateJsonDataHybrid } from '@/lib/generator';
+import { generateJsonData } from '@/lib/generator';
 import { anthropic } from '@/lib/anthropic';
 
 export async function POST(request: NextRequest) {
@@ -14,19 +14,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { schema, prompt, count = 1 }: { 
+    const { schema, prompt }: { 
       schema: JsonSchema; 
       prompt: string; 
-      count: number; 
     } = await request.json();
 
     // Validate input
     if (!schema || !prompt) {
       return NextResponse.json({ error: 'Schema and prompt are required' }, { status: 400 });
-    }
-
-    if (count < 1 || count > 100) {
-      return NextResponse.json({ error: 'Count must be between 1 and 100' }, { status: 400 });
     }
 
     // Validate schema structure
@@ -43,16 +38,15 @@ export async function POST(request: NextRequest) {
     };
 
     // Generate data using hybrid strategy
-    const result = await generateJsonDataHybrid(
+    const result = await generateJsonData(
       anthropic,
       schema,
       prompt,
-      count,
       {
-        maxAttempts: 3,
+        maxAttempts: 5,
         enableFallback: true,
         progressCallback,
-        timeout: 30000
+        timeout: 60000
       }
     );
 
