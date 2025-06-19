@@ -1,6 +1,7 @@
 'use client';
+
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import debounce from 'lodash.debounce';
+import { debounce } from 'lodash';
 import {
   Box,
   Paper,
@@ -185,7 +186,7 @@ export default function SchemaBuilder({
     setSchema({
       name: template.name,
       description: `Generated from ${template.name} template`,
-      fields: template.fields,
+      fields: template.fields as SchemaField[],
     });
     setTemplateDialogOpen(false);
   };
@@ -231,7 +232,7 @@ export default function SchemaBuilder({
 
   const generatePreview = useMemo(
     (): Record<string, unknown> =>
-      convertSchemaToJson(schema.fields, { collapsedFields }),
+      convertSchemaToJson(schema.fields, { collapsedFields, forPreview: true }),
     [schema.fields, collapsedFields]
   );
 
@@ -289,7 +290,7 @@ export default function SchemaBuilder({
                   marginRight: 0.5,
                   marginLeft: 0,
                 },
-                backgroundColor: '#fff',
+                // backgroundColor: 'background.default',
               }}
             >
               {arrayItem.name} (array item)
@@ -331,7 +332,7 @@ export default function SchemaBuilder({
                   '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
                   borderRadius: 1,
                   minHeight: '20px',
-                  backgroundColor: '#fff',
+                  // backgroundColor: 'background.default',
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -372,7 +373,7 @@ export default function SchemaBuilder({
                 borderStyle: 'dashed',
                 borderColor: 'grey.400',
                 color: 'grey.600',
-                backgroundColor: '#fff',
+                // backgroundColor: 'background.default',
                 '&:hover': {
                   borderColor: 'grey.600',
                   backgroundColor: 'grey.50',
@@ -442,7 +443,7 @@ export default function SchemaBuilder({
                   marginRight: 0.5,
                   marginLeft: 0,
                 },
-                backgroundColor: '#fff',
+                // backgroundColor: 'background.default',
               }}
             >
               {arrayItem.name} (nested array)
@@ -497,7 +498,7 @@ export default function SchemaBuilder({
                   '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
                   borderRadius: 1,
                   minHeight: '20px',
-                  backgroundColor: '#fff',
+                  // backgroundColor: 'background.default',
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -602,7 +603,7 @@ export default function SchemaBuilder({
                   marginRight: 0.5,
                   marginLeft: 0,
                 },
-                backgroundColor: '#fff',
+                // backgroundColor: 'background.default',
               }}
             >
               {field.name}
@@ -645,7 +646,7 @@ export default function SchemaBuilder({
                   '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
                   borderRadius: 1,
                   minHeight: '20px',
-                  backgroundColor: '#fff',
+                  // backgroundColor: 'background.default',
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -688,7 +689,7 @@ export default function SchemaBuilder({
                   borderStyle: 'dashed',
                   color: 'text.secondary',
                   borderColor: 'divider',
-                  backgroundColor: '#fff',
+                  // backgroundColor: 'background.default',
                   '&:hover': {
                     borderColor: 'primary.main',
                     backgroundColor: 'action.hover',
@@ -799,7 +800,7 @@ export default function SchemaBuilder({
                       marginRight: 0.5,
                       marginLeft: 0,
                     },
-                    backgroundColor: '#fff',
+                    // backgroundColor: 'background.default',
                   }}
                 >
                   {field.arrayItemType?.name || 'item'} (array item)
@@ -846,7 +847,7 @@ export default function SchemaBuilder({
                       fontSize: '0.75rem',
                       '& .MuiSelect-select': { py: 0.25, px: 1 },
                       '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                      backgroundColor: '#fff',
+                      // backgroundColor: 'background.default',
                       borderRadius: 1,
                       minHeight: '20px',
                     }}
@@ -898,7 +899,7 @@ export default function SchemaBuilder({
                       borderStyle: 'dashed',
                       borderColor: 'grey.400',
                       color: 'grey.600',
-                      backgroundColor: '#fff',
+                      // backgroundColor: 'background.default',
                       '&:hover': {
                         borderColor: 'grey.600',
                         backgroundColor: 'grey.50',
@@ -1123,7 +1124,7 @@ export default function SchemaBuilder({
                 borderStyle: 'dashed',
                 color: 'text.secondary',
                 borderColor: 'grey.300',
-                backgroundColor: '#fff',
+                // backgroundColor: 'background.default',
                 '&:hover': {
                   borderColor: 'primary.main',
                   color: 'primary.main',
@@ -1407,7 +1408,7 @@ export default function SchemaBuilder({
                     setSelectedField(updatedField);
                   }}
                   label='Field Type'
-                  sx={{ backgroundColor: '#fff' }}
+                  // sx={{ backgroundColor: 'background.default' }}
                 >
                   <MenuItem value='text'>Text</MenuItem>
                   <MenuItem value='number'>Number</MenuItem>

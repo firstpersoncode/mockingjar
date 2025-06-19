@@ -52,7 +52,7 @@ export default function SchemaBuilderPage() {
         const result = await saveSchema.mutateAsync(schema);
         setSaveSuccess(true);
         // Navigate to the new schema's edit page
-        router.replace(`/schema/${result.id}`);
+        router.replace(`/mockingjar/schema/${result.id}`);
         setIsNewSchema(false);
       } else {
         // Update existing schema
@@ -110,7 +110,7 @@ export default function SchemaBuilderPage() {
   };
 
   const handleBack = () => {
-    router.push('/schema');
+    router.push('/mockingjar/schema');
   };
 
   if (isLoading && !isNewSchema) {

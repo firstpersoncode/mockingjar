@@ -36,7 +36,7 @@ export default function AppBar({
   };
 
   const handleLogout = () => {
-    signOut({ callbackUrl: '/auth/signin' });
+    signOut({ callbackUrl: '/mockingjar/auth/signin' });
   };
 
   return (

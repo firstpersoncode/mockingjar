@@ -27,22 +27,22 @@ const menuItems = [
   {
     text: 'Schema Builder',
     icon: <SchemaIcon sx={{ fontSize: '1rem' }} />,
-    path: '/schema',
+    path: '/mockingjar/schema',
   },
   {
     text: 'Data Generator',
     icon: <DataIcon sx={{ fontSize: '1rem' }} />,
-    path: '/generator',
+    path: '/mockingjar/generator',
   },
   {
     text: 'History',
     icon: <HistoryIcon sx={{ fontSize: '1rem' }} />,
-    path: '/history',
+    path: '/mockingjar/history',
   },
   {
     text: 'Settings',
     icon: <SettingsIcon sx={{ fontSize: '1rem' }} />,
-    path: '/settings',
+    path: '/mockingjar/settings',
   },
 ];
 

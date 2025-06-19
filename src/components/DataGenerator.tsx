@@ -12,9 +12,6 @@ import {
   MenuItem,
   Alert,
   CircularProgress,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   IconButton,
   Snackbar,
   ButtonGroup,
@@ -25,7 +22,6 @@ import {
   Divider,
 } from '@mui/material';
 import {
-  ExpandMore as ExpandMoreIcon,
   Download as DownloadIcon,
   ContentCopy as CopyIcon,
   Refresh as GenerateIcon,
@@ -51,9 +47,11 @@ export default function DataGenerator() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  const [generatedData, setGeneratedData] = useState<Record<string, unknown>[]>(
-    []
-  );
+  const [generatedData, setGeneratedData] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
+
   const [copySuccess, setCopySuccess] = useState(false);
   const [currentProgress, setCurrentProgress] =
     useState<GenerationProgress | null>(null);
@@ -87,7 +85,9 @@ export default function DataGenerator() {
   const generatePreview = useMemo(
     (): Record<string, unknown> =>
       selectedSchema?.structure?.fields
-        ? convertSchemaToJson(selectedSchema.structure.fields)
+        ? convertSchemaToJson(selectedSchema.structure.fields, {
+            forPreview: true,
+          })
         : {},
     [selectedSchema?.structure?.fields]
   );
@@ -410,10 +410,10 @@ export default function DataGenerator() {
                 fontSize: { xs: '1rem', sm: '1.25rem' },
               }}
             >
-              Generated Data ({generatedData.length} records)
+              Generated Data ({generatedData ? '0' : '1'} record)
             </Typography>
 
-            {generatedData.length > 0 && (
+            {generatedData && (
               <ButtonGroup
                 variant='outlined'
                 size={isMobile ? 'small' : 'medium'}
@@ -432,7 +432,7 @@ export default function DataGenerator() {
             )}
           </Box>
 
-          {generatedData.length === 0 ? (
+          {!generatedData ? (
             <Box sx={{ textAlign: 'center', py: 4 }}>
               <InfoIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
               <Typography variant='body2' color='text.secondary'>
@@ -451,45 +451,34 @@ export default function DataGenerator() {
           ) : (
             <Box sx={{ width: '100%' }}>
               <Divider sx={{ mb: 2 }} />
-              {generatedData.map((record, index) => (
-                <Accordion key={index} sx={{ mb: 1 }}>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Typography variant='subtitle2'>
-                      Record {index + 1}
-                    </Typography>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <Box
-                      display='flex'
-                      justifyContent='space-between'
-                      alignItems='flex-start'
-                    >
-                      <Box
-                        component='pre'
-                        sx={{
-                          backgroundColor: 'grey.50',
-                          p: 2,
-                          borderRadius: 1,
-                          fontSize: '0.75rem',
-                          overflow: 'auto',
-                          flexGrow: 1,
-                          mr: 1,
-                          maxHeight: '300px',
-                        }}
-                      >
-                        {JSON.stringify(record, null, 2)}
-                      </Box>
-                      <IconButton
-                        size='small'
-                        onClick={() => copyToClipboard(record)}
-                        title='Copy this record'
-                      >
-                        <CopyIcon fontSize='small' />
-                      </IconButton>
-                    </Box>
-                  </AccordionDetails>
-                </Accordion>
-              ))}
+              <Box
+                display='flex'
+                justifyContent='space-between'
+                alignItems='flex-start'
+              >
+                <Box
+                  component='pre'
+                  sx={{
+                    backgroundColor: 'grey.50',
+                    p: 2,
+                    borderRadius: 1,
+                    fontSize: '0.75rem',
+                    overflow: 'auto',
+                    flexGrow: 1,
+                    mr: 1,
+                    maxHeight: '300px',
+                  }}
+                >
+                  {JSON.stringify(generatedData, null, 2)}
+                </Box>
+                <IconButton
+                  size='small'
+                  onClick={() => copyToClipboard(generatedData)}
+                  title='Copy this record'
+                >
+                  <CopyIcon fontSize='small' />
+                </IconButton>
+              </Box>
             </Box>
           )}
         </Paper>

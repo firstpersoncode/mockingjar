@@ -1,12 +1,11 @@
-import type { Metadata, Viewport } from "next";
-import "./globals.css";
-import MUIThemeProvider from "@/providers/ThemeProvider";
-import QueryProvider from "@/providers/QueryProvider";
-import AuthProvider from "@/providers/AuthProvider";
+import type { Metadata, Viewport } from 'next';
+import './globals.css';
+import MUIThemeProvider from '@/providers/ThemeProvider';
+import QueryProvider from '@/providers/QueryProvider';
 
 export const metadata: Metadata = {
-  title: "MockingJar",
-  description: "AI-powered JSON data generator with visual schema builder",
+  title: 'MockingJar',
+  description: 'AI-powered JSON data generator with visual schema builder',
 };
 
 export const viewport: Viewport = {
@@ -14,7 +13,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#1976d2",
+  themeColor: '#1976d2',
 };
 
 export default function RootLayout({
@@ -23,19 +22,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang='en'>
       <head>
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name='apple-mobile-web-app-capable' content='yes' />
+        <meta name='apple-mobile-web-app-status-bar-style' content='default' />
       </head>
       <body>
-        <AuthProvider>
-          <QueryProvider>
-            <MUIThemeProvider>
-              {children}
-            </MUIThemeProvider>
-          </QueryProvider>
-        </AuthProvider>
+        <QueryProvider>
+          <MUIThemeProvider>{children}</MUIThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   );

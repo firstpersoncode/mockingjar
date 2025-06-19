@@ -1,7 +1,7 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Box, Typography, Grid } from '@mui/material';
 import SideBar from '@/components/SideBar';
 import DataGenerator from '@/components/DataGenerator';
@@ -9,6 +9,7 @@ import AppBar from '@/components/AppBar';
 
 export default function GeneratorPage() {
   const { data: session, status } = useSession();
+  const router = useRouter();
 
   if (status === 'loading') {
     return (
@@ -24,7 +25,7 @@ export default function GeneratorPage() {
   }
 
   if (!session) {
-    redirect('/auth/signin');
+    router.replace('/mockingjar/auth/signin');
   }
 
   return (

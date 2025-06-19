@@ -65,14 +65,14 @@ export default function SchemaList() {
       setNewSchemaName('');
       setNewSchemaDescription('');
       // Navigate to the new schema builder
-      router.push(`/schema/${result.id}`);
+      router.push(`/mockingjar/schema/${result.id}`);
     } catch (error) {
       console.error('Failed to create schema:', error);
     }
   };
 
   const handleEditSchema = (schemaId: string) => {
-    router.push(`/schema/${schemaId}`);
+    router.push(`/mockingjar/schema/${schemaId}`);
     handleMenuClose();
   };
 

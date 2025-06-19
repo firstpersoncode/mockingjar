@@ -1,4 +1,5 @@
 'use client';
+
 import { useState } from 'react';
 import { signIn, getSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -53,7 +54,7 @@ export default function SignInPage() {
       } else {
         // Refresh session and redirect
         await getSession();
-        router.push('/schema');
+        router.push('/mockingjar/schema');
       }
     } catch (err: unknown) {
       setError('An error occurred. Please try again.' + (err instanceof Error ? `: ${err.message}` : ''));
