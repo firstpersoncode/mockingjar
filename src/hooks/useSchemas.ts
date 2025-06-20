@@ -1,17 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { JsonSchema, SavedSchema } from '@/types/schema';
-import { GenerationProgress, GenerationResult } from '@/types/generation';
+import { GenerateDataParams, GenerationResult } from '@/types/generation';
 
-export interface GenerateDataParams {
-  schema: JsonSchema;
-  prompt: string;
-  count: number;
-  onProgress?: (progress: GenerationProgress) => void;
-}
-
-export interface GenerateDataResult extends GenerationResult {
-  progressSteps?: GenerationProgress[];
-}
 
 export function useSchemas() {
   return useQuery({
@@ -38,7 +28,7 @@ export function useGetSchema(id: string) {
 
 export function useSaveSchema() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (schema: JsonSchema) => {
       const response = await fetch('/api/schemas', {
@@ -57,7 +47,7 @@ export function useSaveSchema() {
 
 export function useUpdateSchema() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ id, schema }: { id: string; schema: JsonSchema }) => {
       const response = await fetch(`/api/schemas/${id}`, {
@@ -76,7 +66,7 @@ export function useUpdateSchema() {
 
 export function useDeleteSchema() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (id: string) => {
       const response = await fetch(`/api/schemas/${id}`, {
@@ -97,15 +87,7 @@ export function useGenerateData() {
       schema,
       prompt,
       count,
-      onProgress,
-    }: GenerateDataParams): Promise<GenerateDataResult> => {
-      // Simulate progress for UI responsiveness
-      onProgress?.({
-        stage: 'preparing',
-        message: 'Preparing generation request...',
-        progress: 0
-      });
-
+    }: GenerateDataParams): Promise<GenerationResult> => {
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -117,16 +99,7 @@ export function useGenerateData() {
         throw new Error(errorData.error || 'Failed to generate data');
       }
 
-      const result: GenerateDataResult = await response.json();
-
-      // Replay progress steps for UI
-      if (result.progressSteps && onProgress) {
-        for (const step of result.progressSteps) {
-          onProgress(step);
-          // Small delay to show progress
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-      }
+      const result: GenerationResult = await response.json();
 
       return result;
     },

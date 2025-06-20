@@ -31,9 +31,8 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSchemas, useGenerateData } from '@/hooks/useSchemas';
-import { GenerationProgress } from '@/types/generation';
-import GenerationProgressComponent from './GenerationProgress';
 import { convertSchemaToJson } from '../lib/schema';
+import { GenerationResultMetadata } from '@/types/generation';
 
 const generateSchema = z.object({
   schemaId: z.string().min(1, 'Please select a schema'),
@@ -50,18 +49,10 @@ export default function DataGenerator() {
   const [generatedData, setGeneratedData] = useState<Record<
     string,
     unknown
-  > | null>(null);
+  >[]>([]);
 
   const [copySuccess, setCopySuccess] = useState(false);
-  const [currentProgress, setCurrentProgress] =
-    useState<GenerationProgress | null>(null);
-  const [generationMetadata, setGenerationMetadata] = useState<{
-    totalFields: number;
-    validFields: number;
-    regeneratedFields: string[];
-    attempts: number;
-    generationTime: number;
-  } | null>(null);
+  const [generationMetadata, setGenerationMetadata] = useState<GenerationResultMetadata | null>(null);
 
   const { data: schemas = [], isLoading: schemasLoading } = useSchemas();
   const generateData = useGenerateData();
@@ -96,34 +87,22 @@ export default function DataGenerator() {
     if (!selectedSchema) return;
 
     try {
-      setCurrentProgress(null);
       setGenerationMetadata(null);
 
       const result = await generateData.mutateAsync({
         schema: selectedSchema.structure,
         prompt: data.prompt,
         count: data.count,
-        onProgress: setCurrentProgress,
       });
 
       if (result.success && result.data) {
         setGeneratedData(result.data);
         setGenerationMetadata(result.metadata || null);
-        setCurrentProgress({
-          stage: 'completed',
-          message: 'Data generation completed successfully!',
-          progress: 100,
-        });
       } else {
         throw new Error(result.errors?.[0] || 'Generation failed');
       }
     } catch (error) {
       console.error('Generation failed:', error);
-      setCurrentProgress({
-        stage: 'failed',
-        message: error instanceof Error ? error.message : 'Generation failed',
-        progress: 0,
-      });
     }
   };
 
@@ -283,16 +262,6 @@ export default function DataGenerator() {
             </Button>
           </form>
 
-          {/* Progress Display */}
-          {currentProgress && (
-            <Box sx={{ mt: 3 }}>
-              <GenerationProgressComponent
-                progress={currentProgress}
-                showDetails={true}
-              />
-            </Box>
-          )}
-
           {/* Generation Results Summary */}
           {generationMetadata && (
             <Card sx={{ mt: 2 }}>
@@ -321,14 +290,6 @@ export default function DataGenerator() {
                     </Typography>
                     <Typography variant='body2' fontWeight='medium'>
                       {generationMetadata.validFields}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant='caption' color='text.secondary'>
-                      Attempts
-                    </Typography>
-                    <Typography variant='body2' fontWeight='medium'>
-                      {generationMetadata.attempts}
                     </Typography>
                   </Box>
                   <Box>
@@ -410,21 +371,15 @@ export default function DataGenerator() {
                 fontSize: { xs: '1rem', sm: '1.25rem' },
               }}
             >
-              Generated Data ({generatedData ? '0' : '1'} record)
+              Generated Data ({generatedData.length} record)
             </Typography>
 
-            {generatedData && (
+            {generatedData.length > 0 && (
               <ButtonGroup
                 variant='outlined'
                 size={isMobile ? 'small' : 'medium'}
                 orientation={isMobile ? 'vertical' : 'horizontal'}
               >
-                <Button
-                  startIcon={<CopyIcon />}
-                  onClick={() => copyToClipboard(generatedData)}
-                >
-                  Copy All
-                </Button>
                 <Button startIcon={<DownloadIcon />} onClick={downloadData}>
                   Download
                 </Button>
@@ -432,21 +387,13 @@ export default function DataGenerator() {
             )}
           </Box>
 
-          {!generatedData ? (
+          {!generatedData.length ? (
             <Box sx={{ textAlign: 'center', py: 4 }}>
               <InfoIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
               <Typography variant='body2' color='text.secondary'>
                 No data generated yet. Select a schema and provide a prompt to
                 generate data.
               </Typography>
-              {currentProgress?.stage === 'failed' && (
-                <Alert severity='error' sx={{ mt: 2, textAlign: 'left' }}>
-                  <Typography variant='body2'>
-                    Generation failed. Please check your schema and prompt, then
-                    try again.
-                  </Typography>
-                </Alert>
-              )}
             </Box>
           ) : (
             <Box sx={{ width: '100%' }}>
@@ -459,14 +406,16 @@ export default function DataGenerator() {
                 <Box
                   component='pre'
                   sx={{
-                    backgroundColor: 'grey.50',
-                    p: 2,
+                    p: { xs: 1, sm: 2 },
                     borderRadius: 1,
-                    fontSize: '0.75rem',
-                    overflow: 'auto',
-                    flexGrow: 1,
-                    mr: 1,
                     maxHeight: '300px',
+                    overflow: 'auto',
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                    lineHeight: { xs: 1.3, sm: 1.4 },
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                    color: '#fffade',
+                    backgroundColor: '#000',
                   }}
                 >
                   {JSON.stringify(generatedData, null, 2)}

@@ -1,14 +1,11 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import { JsonSchema, SchemaField } from '@/types/schema';
-import {
-  GenerationResult,
-  GenerationOptions,
-  GenerationProgress,
-} from '@/types/generation';
+import { GenerationResult, GenerationOptions } from '@/types/generation';
 import { jsonValidator, ValidationError } from './validation';
 import { convertSchemaToJson } from './schema';
-// import { logDebugData, resetDebugSession } from './_debugger';
+import { logDebugData, resetDebugSession } from './_debugger';
 import { merge, cloneDeep, unset, pick } from 'lodash';
+import { MessageParam } from '@anthropic-ai/sdk/resources/messages.mjs';
 
 /**
  * Remove unidentified fields that don't exist in the schema
@@ -192,36 +189,65 @@ function stripMarkdown(text: string): string {
 /**
  * Generate a prompt for Claude API
  */
-function createPrompt(
+function createMessages(
+  currentResults: Record<string, unknown>[],
   userPrompt: string,
   outputSchema: Record<string, unknown>,
-  parentContext?: Record<string, unknown>
-): string {
+  clonedContext?: Record<string, unknown>
+): MessageParam[] {
+  const messages: MessageParam[] = [
+    {
+      role: 'assistant',
+      content: `Hello, I am structured data assistant. My task is to generate valid JSON values based on user's prompt. I will respond only with valid JSON, no markdown or explanations.`,
+    },
+  ];
 
-  let prompt = `You are a structured data assistant. Your task is to generate valid JSON values. Do not return explanations or markdown — only valid JSON.
+  if (currentResults.length > 0) {
+    const lastResult = currentResults[currentResults.length - 1];
+    messages.push({
+      role: 'user',
+      content: `Here is the previously generated data example:
+          ${JSON.stringify(lastResult, null, 2)}
 
-USER PROMPT: "${userPrompt}"`;
-
-  if (parentContext && Object.keys(parentContext).length > 0) {
-    prompt += `
-
-DATA CONTEXT:
-${JSON.stringify(parentContext, null, 2)}`;
+          Please do not make an exact copy of this data, but use it as a reference to generate new data that follows the same structure, rules and relevance.`,
+    });
   }
 
-  prompt += `
+  if (clonedContext && Object.keys(clonedContext).length > 0) {
+    messages.push({
+      role: 'assistant',
+      content: `I have the following context to work with, and will make sure the generated data is related and relevant to this:
+            ${JSON.stringify(clonedContext, null, 2)}
+          `,
+    });
+  }
 
-OUTPUT STRUCTURE TO BE STRICTLY FOLLOWED:
-${JSON.stringify(outputSchema, null, 2)}
+  messages.push({
+    role: 'assistant',
+    content: `
+        I will generate data based on the following JSON structure and its rules.
 
-RULES:
-1. Follow each field's type and structure exactly.
-2. Follow each field's name and type as specified in the output structure.
-3. Follow each field's constraints and requirements defined.
+        OUTPUT STRUCTURE TO BE STRICTLY FOLLOWED:
+        ${JSON.stringify(outputSchema, null, 2)}
 
-Respond only with valid JSON, no markdown or explanations.`;
+        RULES:
+        1. Follow each field's type and structure exactly.
+        2. Follow each field's name and type as specified in the output structure.
+        3. Follow each field's constraints and requirements defined.
 
-  return prompt;
+        As I said, I will respond only with valid JSON, no markdown or explanations.
+      `,
+  });
+
+  messages.push({
+    role: 'user',
+    content: `
+        Generate a JSON object that relevant to this prompt:
+        "${userPrompt}"
+      `,
+  });
+
+  return messages;
 }
 
 /**
@@ -243,36 +269,18 @@ export async function generateJsonData(
   prompt: string,
   options: GenerationOptions = {}
 ): Promise<GenerationResult> {
-  const { maxAttempts = 5, progressCallback, timeout = 30000 } = options;
+  const { maxAttempts = 5, timeout = 30000, count = 1 } = options;
 
   const regeneratedFields: string[] = [];
-  let totalAttempts = 0;
   const startTime = Date.now();
 
-  // Progress tracking helper
-  const updateProgress = (
-    stage: GenerationProgress['stage'],
-    message: string,
-    progress: number,
-    currentField?: string
-  ) => {
-    if (progressCallback) {
-      progressCallback({
-        stage,
-        message,
-        progress,
-        currentField,
-        attempts: totalAttempts,
-        maxAttempts,
-      });
-    }
-  };
+  const results: Record<string, unknown>[] = [];
 
   async function generate(
     currentSchema: JsonSchema,
     validContext: Record<string, unknown> | null = null,
-    isRepair = false
-  ): Promise<Record<string, unknown>> {
+    totalAttempts: number = 0
+  ): Promise<void> {
     // Check recursion depth limit before incrementing
     if (totalAttempts >= maxAttempts) {
       throw new Error(
@@ -282,40 +290,27 @@ export async function generateJsonData(
 
     // Increment attempts counter for this function call
     totalAttempts++;
-
-    updateProgress(
-      isRepair ? 'fixing' : 'generating',
-      isRepair ? 'Fixing validation errors...' : 'Generating initial data...',
-      isRepair ? 60 + (totalAttempts - 1) * 10 : 30
-    );
-
-    // logDebugData('currentSchema.json', currentSchema);
+    logDebugData('currentSchema.json', currentSchema);
 
     const clonedContext = validContext ? cloneDeep(validContext) : null;
 
-    // logDebugData('validContext.json', clonedContext);
+    logDebugData('validContext.json', clonedContext);
 
     const convertedSchema = convertSchemaToJson(currentSchema.fields);
 
-    // logDebugData('convertedSchema.json', convertedSchema);
-
-    const promptText = createPrompt(
-      prompt,
-      convertedSchema,
-      clonedContext || undefined
-    );
+    logDebugData('convertedSchema.json', convertedSchema);
 
     // Single API call - no retry loop
     const apiCall = anthropic.messages.create({
       model: 'claude-4-sonnet-20250514',
       max_tokens: 4096,
       temperature: 0.1,
-      messages: [
-        {
-          role: 'user',
-          content: promptText,
-        },
-      ],
+      messages: createMessages(
+        results,
+        prompt,
+        convertedSchema,
+        clonedContext || undefined
+      ),
     });
 
     // Apply timeout if specified
@@ -327,6 +322,10 @@ export async function generateJsonData(
           ),
         ])
       : apiCall)) as { content?: Array<{ type: string; text: string }> };
+
+      if (!response.content?.[0]) {
+        console.log("ERROR")
+      }
 
     const content = response.content?.[0];
     if (!content || content.type !== 'text') {
@@ -343,24 +342,18 @@ export async function generateJsonData(
       throw new Error('Invalid JSON response from Claude');
     }
 
-    // logDebugData('jsonResult.json', jsonResult);
-
-    updateProgress(
-      'validating',
-      'Validating generated data...',
-      isRepair ? 80 : 50
-    );
+    logDebugData('jsonResult.json', jsonResult);
 
     const validationErrors = jsonValidator(jsonResult, currentSchema);
-    // logDebugData('validationErrors.json', validationErrors);
+    logDebugData('validationErrors.json', validationErrors);
     const unidentifiedFields = validationErrors.filter(
       (error) => error.reason === 'Unidentified field'
     );
-    // logDebugData('unidentifiedFields.json', unidentifiedFields);
+    logDebugData('unidentifiedFields.json', unidentifiedFields);
     const otherErrors = validationErrors.filter(
       (error) => error.reason !== 'Unidentified field'
     );
-    // logDebugData('otherErrors.json', otherErrors);
+    logDebugData('otherErrors.json', otherErrors);
 
     const errorFields: string[] = [];
 
@@ -368,7 +361,7 @@ export async function generateJsonData(
     for (const error of otherErrors) {
       if (error.structure) {
         const simplifiedField = simplifyFieldName(error.affectedField);
-        
+
         if (!errorFields.includes(simplifiedField)) {
           errorFields.push(simplifiedField);
         }
@@ -379,101 +372,87 @@ export async function generateJsonData(
       }
     }
 
-    // logDebugData('errorFields.json', errorFields);
-    // logDebugData('regeneratedFields.json', regeneratedFields);
+    logDebugData('errorFields.json', errorFields);
+    logDebugData('regeneratedFields.json', regeneratedFields);
 
-    // const fixedFields = regeneratedFields.filter((field) => {
-    //   return !errorFields.includes(field);
-    // });
+    const fixedFields = regeneratedFields.filter((field) => {
+      return !errorFields.includes(field);
+    });
 
-    // logDebugData('fixedFields.json', fixedFields);
+    logDebugData('fixedFields.json', fixedFields);
 
     if (unidentifiedFields.length > 0) {
       jsonResult = removeUnidentifiedFields(jsonResult, unidentifiedFields);
-      // logDebugData('jsonResult.cleaned.json', jsonResult);
+      logDebugData('jsonResult.cleaned.json', jsonResult);
     }
 
     if (otherErrors.length === 0) {
       const result = merge(clonedContext, jsonResult);
-      // logDebugData('validContext.json', result);
-      return result;
+      logDebugData('validContext.json', result);
+      results.push(result);
+      return;
     }
 
     const extractedValidContext = extractValidContext(jsonResult, otherErrors);
-    // logDebugData('extractedValidContext.json', extractedValidContext);
+    logDebugData('extractedValidContext.json', extractedValidContext);
     // Recursively fix the errors
     return generate(
       generatePartialSchema(currentSchema, errorFields),
       merge(clonedContext, extractedValidContext),
-      true
+      totalAttempts
     );
   }
 
   try {
-    updateProgress('preparing', 'Preparing data generation...', 10);
-
     // Start the generation process
-    const result = await generate(schema);
 
-    updateProgress('completed', 'Data generation completed successfully!', 100);
+    for (let i = 0; i < count; i++) {
+      await generate(schema);
+    }
 
     const generationTime = Date.now() - startTime;
 
-    // resetDebugSession(); // Reset debug session for next run
-
-    return {
+    const result = {
       success: true,
-      data: result,
-      progress: {
-        stage: 'completed',
-        message: 'Data generation completed successfully!',
-        progress: 100,
-        attempts: totalAttempts,
-        maxAttempts,
-      },
+      data: results,
       metadata: {
         totalFields: schema.fields.length,
         validFields: schema.fields.length,
         regeneratedFields,
-        attempts: totalAttempts,
         generationTime,
       },
     };
-  } catch (error) {
-    updateProgress(
-      'failed',
-      error instanceof Error ? error.message : 'Generation failed',
-      0
-    );
 
+    logDebugData('generationResult.json', result);
+
+    resetDebugSession(); // Reset debug session for next run
+
+    return result;
+  } catch (error) {
     console.log(
       'GENERATOR ERROR:',
       error instanceof Error ? error.message : 'Unknown error'
     );
 
-    // resetDebugSession(); // Reset debug session for next run
-
-    return {
+    const result = {
       success: false,
       errors: [
         error instanceof Error
           ? `Generation failed: ${error.message}`
           : 'Generation failed: Unknown error occurred',
       ],
-      progress: {
-        stage: 'failed',
-        message: error instanceof Error ? error.message : 'Generation failed',
-        progress: 0,
-        attempts: totalAttempts,
-        maxAttempts,
-      },
       metadata: {
         totalFields: schema.fields.length,
         validFields: 0,
         regeneratedFields,
-        attempts: totalAttempts,
         generationTime: Date.now() - startTime,
       },
     };
+
+    logDebugData('generationError.json', result);
+
+    resetDebugSession(); // Reset debug session for next run
+
+    return result;
   }
 }

@@ -1,25 +1,23 @@
-export interface GenerationProgress {
-  stage: 'preparing' | 'generating' | 'validating' | 'fixing' | 'completed' | 'failed';
-  message: string;
-  progress: number; // 0-100
-  currentField?: string;
-  failedFields?: string[];
-  attempts?: number;
-  maxAttempts?: number;
+import { JsonSchema } from './schema';
+
+export interface GenerateDataParams {
+  schema: JsonSchema;
+  prompt: string;
+  count: number;
+}
+
+export interface GenerationResultMetadata {
+  totalFields: number;
+  validFields: number;
+  regeneratedFields: string[];
+  generationTime: number;
 }
 
 export interface GenerationResult {
   success: boolean;
-  data?: Record<string, unknown>;
+  data?: Record<string, unknown>[];
   errors?: string[];
-  progress: GenerationProgress;
-  metadata?: {
-    totalFields: number;
-    validFields: number;
-    regeneratedFields: string[];
-    attempts: number;
-    generationTime: number;
-  };
+  metadata?: GenerationResultMetadata;
 }
 
 export interface FieldGenerationContext {
@@ -34,6 +32,6 @@ export interface FieldGenerationContext {
 export interface GenerationOptions {
   maxAttempts?: number;
   enableFallback?: boolean;
-  progressCallback?: (progress: GenerationProgress) => void;
   timeout?: number;
+  count?: number; // For batch generation
 }

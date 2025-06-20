@@ -8,19 +8,15 @@ let logs: Record<string, unknown[]> = {};
  * Simple reusable logging function for any data
  */
 export function logDebugData(filename: string, data: unknown): void {
+  if (['prod', 'production'].includes(process.env.NODE_ENV)) return;
+
   try {
     // Initialize session ID on first call
     if (!debugSessionId) {
       debugSessionId = new Date().toISOString().replace(/[:.]/g, '-');
     }
 
-    const debugDir = path.join(
-      process.cwd(),
-      'src',
-      'lib',
-      'generatorDebugger',
-      debugSessionId
-    );
+    const debugDir = path.join(process.cwd(), 'src', 'lib', '_debug_', debugSessionId);
 
     if (!logs[filename]) {
       logs[filename] = [];

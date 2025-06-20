@@ -143,7 +143,7 @@ describe('generateJsonData', () => {
       );
 
       expect(result.success).toBe(true);
-      expect(result.data).toEqual(validResponse);
+      expect(result.data).toEqual([validResponse]);
       expect(result.metadata?.regeneratedFields).toEqual([]);
       expect(mockAnthropic.messages.create).toHaveBeenCalledTimes(1);
     });
@@ -236,14 +236,14 @@ describe('generateJsonData', () => {
         mockAnthropic,
         testSchema,
         'Create user data',
-        { maxAttempts: 4 }
+        { maxAttempts: 4, count: 1 }
       );
 
       expect(result.success).toBe(true);
-      expect(result.data).toBeDefined();
+      expect(result.data).toHaveLength(1);
 
       // Should have fixed the data
-      const finalData = result.data as Record<string, unknown>;
+      const finalData = result.data?.[0] as Record<string, unknown>;
       const office = finalData.office as Record<string, unknown>;
       const owner = finalData.owner as Record<string, unknown>;
       expect(office.tags as unknown[]).toEqual(
