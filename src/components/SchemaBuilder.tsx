@@ -26,7 +26,6 @@ import {
   AccordionDetails,
   Divider,
   CircularProgress,
-  Snackbar,
   Stack,
   Skeleton,
   InputAdornment,
@@ -41,12 +40,10 @@ import {
   Settings as SettingsIcon,
   KeyboardArrowRight as ArrowRightIcon,
   KeyboardArrowDown as ArrowDownIcon,
-  CopyAll,
   CheckCircleOutline,
 } from '@mui/icons-material';
 import { v4 as uuidv4 } from 'uuid';
 import { SchemaField, JsonSchema } from '@/types/schema';
-import { createSchemaTemplates } from '../lib/template';
 import { format } from 'date-fns';
 import {
   convertSchemaToJson,
@@ -82,11 +79,9 @@ export default function SchemaBuilder({
 }: SchemaBuilderProps) {
   const [schema, setSchema] = useState<JsonSchema>(() => initialSchema);
   const [selectedField, setSelectedField] = useState<SchemaField | null>(null);
-  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [fieldPropertiesDialogOpen, setFieldPropertiesDialogOpen] =
     useState(false);
   const [jsonPreviewDialogOpen, setJsonPreviewDialogOpen] = useState(false);
-  const [copyToClipboardMessage, setCopyToClipboardMessage] = useState('');
 
   // Local state for name editing
   const [tempName, setTempName] = useState(schema.name);
@@ -95,9 +90,6 @@ export default function SchemaBuilder({
   const [collapsedFields, setCollapsedFields] = useState<Set<string>>(
     new Set()
   );
-
-  // Memoize schema templates to prevent recreation on every render
-  const schemaTemplates = useMemo(() => createSchemaTemplates(), []);
 
   // Sync with initialSchema prop changes
   useEffect(() => {
@@ -177,20 +169,6 @@ export default function SchemaBuilder({
     });
   }, []);
 
-  // Memoize schema templates to prevent recreation on every render
-
-  const applyTemplate = (
-    templateKey: keyof ReturnType<typeof createSchemaTemplates>
-  ) => {
-    const template = schemaTemplates[templateKey];
-    setSchema({
-      name: template.name,
-      description: `Generated from ${template.name} template`,
-      fields: template.fields as SchemaField[],
-    });
-    setTemplateDialogOpen(false);
-  };
-
   const updateField = useCallback((updatedField: SchemaField) => {
     setSchema((prev) => ({
       ...prev,
@@ -235,15 +213,6 @@ export default function SchemaBuilder({
       convertSchemaToJson(schema.fields, { collapsedFields, forPreview: true }),
     [schema.fields, collapsedFields]
   );
-
-  const copyToClipboard = useCallback(async (data: unknown) => {
-    try {
-      await navigator.clipboard.writeText(JSON.stringify(data, null, 2));
-      setCopyToClipboardMessage('Copied to clipboard!');
-    } catch (err) {
-      console.error('Failed to copy to clipboard:', err);
-    }
-  }, []);
 
   const renderArrayItemTree = (
     arrayItem: SchemaField,
@@ -1015,32 +984,20 @@ export default function SchemaBuilder({
             justifyContent='space-between'
             alignItems='center'
             mb={{ xs: 1, sm: 2 }}
-            flexWrap='wrap'
-            gap={1}
+            gap={2}
           >
-            <Typography
+            {/* <Typography
               variant='h6'
               sx={{
                 fontSize: { xs: '1rem', sm: '1.25rem' },
               }}
             >
-              Schema Structure
-            </Typography>
-            <Box display='flex' gap={1}>
-              <Button
-                variant='outlined'
-                size='small'
-                onClick={() => setTemplateDialogOpen(true)}
-                sx={{ fontSize: { xs: '0.7rem', sm: '0.8rem' } }}
-              >
-                Templates
-              </Button>
-            </Box>
-          </Box>
+              Schema
+            </Typography> */}
 
-          {/* Schema Name Editor */}
-          <Box sx={{ mb: 2 }}>
             <TextField
+              sx={{ flex: 1 }}
+              fullWidth
               value={tempName}
               onChange={(e) => setTempName(e.target.value)}
               placeholder='Enter schema name'
@@ -1200,13 +1157,6 @@ export default function SchemaBuilder({
             </Stack>
             <Box display='flex' gap={0.5} alignItems='center'>
               <IconButton
-                onClick={() => copyToClipboard(generatePreview)}
-                size='small'
-                title='Copy to clipboard'
-              >
-                <CopyAll />
-              </IconButton>
-              <IconButton
                 onClick={() => setJsonPreviewDialogOpen(true)}
                 size='small'
                 title='Open in dialog'
@@ -1247,6 +1197,7 @@ export default function SchemaBuilder({
               wordBreak: 'break-word',
               color: '#fffade',
               backgroundColor: '#000',
+              maxHeight: '300px',
             }}
           >
             {JSON.stringify(generatePreview, null, 2)}
@@ -1265,81 +1216,6 @@ export default function SchemaBuilder({
           )}
         </Paper>
       </Box>
-
-      {/* Template Selection Dialog */}
-      <Dialog
-        open={templateDialogOpen}
-        onClose={() => setTemplateDialogOpen(false)}
-        maxWidth='md'
-        fullWidth
-      >
-        <DialogTitle>Choose Schema Template</DialogTitle>
-        <DialogContent>
-          <Typography variant='body2' color='text.secondary' gutterBottom>
-            Select a pre-built template to get started quickly. You can
-            customize the fields after applying the template.
-          </Typography>
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-              gap: 2,
-              mt: 2,
-            }}
-          >
-            {Object.entries(schemaTemplates).map(([key, template]) => (
-              <Paper
-                key={key}
-                sx={{
-                  p: 2,
-                  cursor: 'pointer',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  '&:hover': {
-                    borderColor: 'primary.main',
-                    backgroundColor: 'action.hover',
-                  },
-                }}
-                onClick={() =>
-                  applyTemplate(key as keyof typeof schemaTemplates)
-                }
-              >
-                <Typography variant='h6' gutterBottom>
-                  {template.name}
-                </Typography>
-                <Typography variant='body2' color='text.secondary' gutterBottom>
-                  {template.fields.length} fields
-                </Typography>
-                <Box
-                  sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}
-                >
-                  {template.fields.slice(0, 4).map((field) => (
-                    <Chip
-                      key={field.id}
-                      label={field.name}
-                      size='small'
-                      variant='outlined'
-                      sx={{ fontSize: '0.7rem' }}
-                    />
-                  ))}
-                  {template.fields.length > 4 && (
-                    <Chip
-                      label={`+${template.fields.length - 4} more`}
-                      size='small'
-                      variant='outlined'
-                      color='primary'
-                      sx={{ fontSize: '0.7rem' }}
-                    />
-                  )}
-                </Box>
-              </Paper>
-            ))}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setTemplateDialogOpen(false)}>Cancel</Button>
-        </DialogActions>
-      </Dialog>
 
       {/* Field Properties Dialog */}
       <Dialog
@@ -1462,10 +1338,7 @@ export default function SchemaBuilder({
 
               {/* Advanced Validation Rules */}
               <Accordion sx={{ mt: 2 }}>
-                <AccordionSummary
-                  expandIcon={<ExpandMoreIcon />}
-                  sx={{ backgroundColor: 'grey.50' }}
-                >
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                   <Typography variant='subtitle2'>Validation Rules</Typography>
                 </AccordionSummary>
                 <AccordionDetails>
@@ -1473,9 +1346,7 @@ export default function SchemaBuilder({
                     sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
                   >
                     {/* String validation rules */}
-                    {(selectedField.type === 'text' ||
-                      selectedField.type === 'email' ||
-                      selectedField.type === 'url') && (
+                    {selectedField.type === 'text' && (
                       <>
                         <Box
                           sx={{
@@ -1489,13 +1360,20 @@ export default function SchemaBuilder({
                             type='number'
                             value={selectedField.logic?.minLength || ''}
                             onChange={(e) => {
+                               let value = e.target.value;
+                            if (value && parseInt(value) < 0) {
+                              value = '0'; // Prevent negative values
+                            }
+
+                              if (value && parseInt(value) > 500) {
+                                value = '500'; // Limit max to 500
+                              }
+
                               const updatedField = {
                                 ...selectedField,
                                 logic: {
                                   ...selectedField.logic,
-                                  minLength: e.target.value
-                                    ? parseInt(e.target.value)
-                                    : undefined,
+                                  minLength: value ? parseInt(value) : undefined,
                                 },
                               };
                               updateField(updatedField);
@@ -1509,13 +1387,19 @@ export default function SchemaBuilder({
                             type='number'
                             value={selectedField.logic?.maxLength || ''}
                             onChange={(e) => {
+                               let value = e.target.value;
+                            if (value && parseInt(value) < 0) {
+                              value = '0'; // Prevent negative values
+                            }
+
+                              if (value && parseInt(value) > 500) {
+                                value = '500'; // Limit max to 500
+                              }
                               const updatedField = {
                                 ...selectedField,
                                 logic: {
                                   ...selectedField.logic,
-                                  maxLength: e.target.value
-                                    ? parseInt(e.target.value)
-                                    : undefined,
+                                  maxLength: value ? parseInt(value) : undefined,
                                 },
                               };
                               updateField(updatedField);
@@ -1559,13 +1443,17 @@ export default function SchemaBuilder({
                           type='number'
                           value={selectedField.logic?.min || ''}
                           onChange={(e) => {
+
+                            let value = e.target.value;
+                            if (value && parseInt(value) < 0) {
+                              value = '0'; // Prevent negative values
+                            }
+
                             const updatedField = {
                               ...selectedField,
                               logic: {
                                 ...selectedField.logic,
-                                min: e.target.value
-                                  ? parseInt(e.target.value)
-                                  : undefined,
+                                min: value ? parseInt(value) : undefined,
                               },
                             };
                             updateField(updatedField);
@@ -1579,13 +1467,16 @@ export default function SchemaBuilder({
                           type='number'
                           value={selectedField.logic?.max || ''}
                           onChange={(e) => {
+                             let value = e.target.value;
+                            if (value && parseInt(value) < 0) {
+                              value = '0'; // Prevent negative values
+                            }
+
                             const updatedField = {
                               ...selectedField,
                               logic: {
                                 ...selectedField.logic,
-                                max: e.target.value
-                                  ? parseInt(e.target.value)
-                                  : undefined,
+                                max: value ? parseInt(value) : undefined,
                               },
                             };
                             updateField(updatedField);
@@ -1611,12 +1502,21 @@ export default function SchemaBuilder({
                           type='number'
                           value={selectedField.logic?.minItems || ''}
                           onChange={(e) => {
+                            let value = e.target.value;
+                            if (value && parseInt(value) < 0) {
+                              value = '0'; // Prevent negative values
+                            }
+
+                            if (value && parseInt(value) > 10) {
+                              value = '10'; // Limit max to 10
+                            }
+
                             const updatedField = {
                               ...selectedField,
                               logic: {
                                 ...selectedField.logic,
-                                minItems: e.target.value
-                                  ? parseInt(e.target.value)
+                                minItems: value
+                                  ? parseInt(value)
                                   : undefined,
                               },
                             };
@@ -1631,13 +1531,20 @@ export default function SchemaBuilder({
                           type='number'
                           value={selectedField.logic?.maxItems || ''}
                           onChange={(e) => {
+                            let value = e.target.value;
+                            if (value && parseInt(value) < 0) {
+                              value = '0'; // Prevent negative values
+                            }
+
+                            if (value && parseInt(value) > 10) {
+                              value = '10'; // Limit max to 10
+                            }
+                            
                             const updatedField = {
                               ...selectedField,
                               logic: {
                                 ...selectedField.logic,
-                                maxItems: e.target.value
-                                  ? parseInt(e.target.value)
-                                  : undefined,
+                                maxItems: value ? parseInt(value) : undefined,
                               },
                             };
                             updateField(updatedField);
@@ -1651,8 +1558,7 @@ export default function SchemaBuilder({
 
                     {/* Enum values only for text, number, and email types */}
                     {(selectedField.type === 'text' ||
-                      selectedField.type === 'number' ||
-                      selectedField.type === 'email') && (
+                      selectedField.type === 'number') && (
                       <>
                         <Divider sx={{ my: 1 }} />
                         <EnumField
@@ -1719,7 +1625,6 @@ export default function SchemaBuilder({
           <Box
             component='pre'
             sx={{
-              backgroundColor: 'grey.100',
               p: 2,
               borderRadius: 1,
               overflow: 'auto',
@@ -1735,23 +1640,9 @@ export default function SchemaBuilder({
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button
-            onClick={() => copyToClipboard(generatePreview)}
-            startIcon={<CopyAll />}
-          >
-            Copy to Clipboard
-          </Button>
           <Button onClick={() => setJsonPreviewDialogOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
-
-      <Snackbar
-        open={!!copyToClipboardMessage}
-        autoHideDuration={3000}
-        onClose={() => setCopyToClipboardMessage('')}
-        message={copyToClipboardMessage}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      />
     </Box>
   );
 }
