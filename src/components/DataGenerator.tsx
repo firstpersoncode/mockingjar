@@ -46,13 +46,13 @@ export default function DataGenerator() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  const [generatedData, setGeneratedData] = useState<Record<
-    string,
-    unknown
-  >[]>([]);
+  const [generatedData, setGeneratedData] = useState<Record<string, unknown>[]>(
+    []
+  );
 
   const [copySuccess, setCopySuccess] = useState(false);
-  const [generationMetadata, setGenerationMetadata] = useState<GenerationResultMetadata | null>(null);
+  const [generationMetadata, setGenerationMetadata] =
+    useState<GenerationResultMetadata | null>(null);
 
   const { data: schemas = [], isLoading: schemasLoading } = useSchemas();
   const generateData = useGenerateData();
@@ -67,7 +67,7 @@ export default function DataGenerator() {
     defaultValues: {
       schemaId: '',
       prompt: '',
-      count: 5,
+      count: 1,
     },
   });
 
@@ -136,7 +136,6 @@ export default function DataGenerator() {
         display: 'flex',
         flexDirection: { xs: 'column', lg: 'row' },
         gap: { xs: 2, md: 3 },
-        height: { lg: 'calc(100vh - 120px)' },
         my: 2,
       }}
     >
@@ -145,8 +144,6 @@ export default function DataGenerator() {
         <Paper
           sx={{
             p: { xs: 2, sm: 3 },
-            height: { lg: '100%' },
-            overflow: 'auto',
           }}
         >
           <Typography
@@ -235,10 +232,19 @@ export default function DataGenerator() {
                   fullWidth
                   label='Number of Records'
                   margin='normal'
-                  inputProps={{ min: 1, max: 100 }}
                   error={!!errors.count}
-                  helperText={errors.count?.message || 'Generate 1-100 records'}
-                  onChange={(e) => field.onChange(parseInt(e.target.value, 10))}
+                  helperText={errors.count?.message || 'Generate 1-5 records'}
+                  onChange={(e) => {
+                    let value = e.target.value;
+                    if (value && parseInt(value) <= 0) {
+                      value = '1';
+                    }
+                    if (value && parseInt(value) > 5) {
+                      value = '5';
+                    }
+
+                    field.onChange(parseInt(value, 5));
+                  }}
                 />
               )}
             />
@@ -365,14 +371,17 @@ export default function DataGenerator() {
             flexWrap='wrap'
             gap={1}
           >
-            <Typography
-              variant='h6'
-              sx={{
-                fontSize: { xs: '1rem', sm: '1.25rem' },
-              }}
-            >
-              Generated Data ({generatedData.length} record)
-            </Typography>
+            {generatedData.length > 0 && (
+              <Typography
+                variant='h6'
+                sx={{
+                  fontSize: { xs: '1rem', sm: '1.25rem' },
+                }}
+              >
+                Generated Data ({generatedData.length}{' '}
+                {generatedData.length > 1 ? 'records' : 'record'})
+              </Typography>
+            )}
 
             {generatedData.length > 0 && (
               <ButtonGroup
