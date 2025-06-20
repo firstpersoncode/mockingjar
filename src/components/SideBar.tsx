@@ -38,11 +38,13 @@ const menuItems = [
     text: 'History',
     icon: <HistoryIcon sx={{ fontSize: '1rem' }} />,
     path: '/mockingjar/history',
+    disabled: true
   },
   {
     text: 'Settings',
     icon: <SettingsIcon sx={{ fontSize: '1rem' }} />,
     path: '/mockingjar/settings',
+    disabled: true
   },
 ];
 
@@ -70,6 +72,7 @@ export default function SideBar() {
           {menuItems.map((item) => (
             <ListItem key={item.path} disablePadding>
               <ListItemButton
+                disabled={item.disabled}
                 LinkComponent={Link}
                 href={item.path}
                 selected={pathname === item.path}
