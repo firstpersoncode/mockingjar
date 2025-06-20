@@ -8,6 +8,7 @@ let logs: Record<string, unknown[]> = {};
  * Simple reusable logging function for any data
  */
 export function logDebugData(filename: string, data: unknown): void {
+  return;
   if (['prod', 'production'].includes(process.env.NODE_ENV)) return;
 
   try {
