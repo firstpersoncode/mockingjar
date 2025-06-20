@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Box,
@@ -27,9 +27,11 @@ import {
   Delete as DeleteIcon,
   MoreVert as MoreVertIcon,
   Schema as SchemaIcon,
+  KeyboardArrowDown as ArrowDownIcon,
 } from '@mui/icons-material';
 import { useSchemas, useSaveSchema, useDeleteSchema } from '@/hooks/useSchemas';
-import { JsonSchema } from '@/types/schema';
+import { JsonSchema, SchemaField } from '@/types/schema';
+import { createSchemaTemplates } from '@/lib/template';
 
 export default function SchemaList() {
   const router = useRouter();
@@ -37,10 +39,19 @@ export default function SchemaList() {
   const saveSchema = useSaveSchema();
   const deleteSchema = useDeleteSchema();
 
-  // Create dialog state
+  // Memoize schema templates to prevent recreation on every render
+  const schemaTemplates = useMemo(() => createSchemaTemplates(), []);
+
+  // Create dropdown state
+  const [createDropdownAnchor, setCreateDropdownAnchor] = useState<null | HTMLElement>(null);
+
+  // Create dialog state (for "From Scratch" option)
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newSchemaName, setNewSchemaName] = useState('');
   const [newSchemaDescription, setNewSchemaDescription] = useState('');
+
+  // Template selection dialog state
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
 
   // Delete confirmation state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -68,6 +79,42 @@ export default function SchemaList() {
       router.push(`/mockingjar/schema/${result.id}`);
     } catch (error) {
       console.error('Failed to create schema:', error);
+    }
+  };
+
+  const handleCreateDropdownOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setCreateDropdownAnchor(event.currentTarget);
+  };
+
+  const handleCreateDropdownClose = () => {
+    setCreateDropdownAnchor(null);
+  };
+
+  const handleCreateFromScratch = () => {
+    handleCreateDropdownClose();
+    setCreateDialogOpen(true);
+  };
+
+  const handleCreateFromTemplate = () => {
+    handleCreateDropdownClose();
+    setTemplateDialogOpen(true);
+  };
+
+  const handleTemplateSelect = async (templateKey: keyof typeof schemaTemplates) => {
+    const template = schemaTemplates[templateKey];
+    const newSchema: JsonSchema = {
+      name: template.name,
+      description: `Generated from ${template.name} template`,
+      fields: template.fields as SchemaField[],
+    };
+
+    try {
+      const result = await saveSchema.mutateAsync(newSchema);
+      setTemplateDialogOpen(false);
+      // Navigate to the new schema builder
+      router.push(`/mockingjar/schema/${result.id}`);
+    } catch (error) {
+      console.error('Failed to create schema from template:', error);
     }
   };
 
@@ -151,8 +198,8 @@ export default function SchemaList() {
         </Box>
         <Button
           variant='contained'
-          startIcon={<AddIcon />}
-          onClick={() => setCreateDialogOpen(true)}
+          endIcon={<ArrowDownIcon />}
+          onClick={handleCreateDropdownOpen}
           size='large'
         >
           Create Schema
@@ -178,7 +225,7 @@ export default function SchemaList() {
           <Button
             variant='contained'
             startIcon={<AddIcon />}
-            onClick={() => setCreateDialogOpen(true)}
+            onClick={handleCreateDropdownOpen}
           >
             Create Your First Schema
           </Button>
@@ -267,6 +314,107 @@ export default function SchemaList() {
           ))}
         </Box>
       )}
+
+      {/* Create Schema Dropdown Menu */}
+      <Menu
+        anchorEl={createDropdownAnchor}
+        open={Boolean(createDropdownAnchor)}
+        onClose={handleCreateDropdownClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+      >
+        <MenuItem onClick={handleCreateFromScratch}>
+          <AddIcon sx={{ mr: 1 }} />
+          From Scratch
+        </MenuItem>
+        <MenuItem onClick={handleCreateFromTemplate}>
+          <SchemaIcon sx={{ mr: 1 }} />
+          From Template
+        </MenuItem>
+      </Menu>
+
+      {/* Template Selection Dialog */}
+      <Dialog
+        open={templateDialogOpen}
+        onClose={() => setTemplateDialogOpen(false)}
+        maxWidth='md'
+        fullWidth
+      >
+        <DialogTitle>Choose Schema Template</DialogTitle>
+        <DialogContent>
+          <Typography variant='body2' color='text.secondary' gutterBottom>
+            Select a pre-built template to get started quickly. You can
+            customize the fields after applying the template.
+          </Typography>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+              gap: 2,
+              mt: 2,
+            }}
+          >
+            {Object.entries(schemaTemplates).map(([key, template]) => (
+              <Card
+                key={key}
+                sx={{
+                  cursor: 'pointer',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  transition: 'all 0.2s ease-in-out',
+                  '&:hover': {
+                    borderColor: 'primary.main',
+                    backgroundColor: 'action.hover',
+                    transform: 'translateY(-2px)',
+                    boxShadow: 2,
+                  },
+                }}
+                onClick={() => handleTemplateSelect(key as keyof typeof schemaTemplates)}
+              >
+                <CardContent>
+                  <Typography variant='h6' gutterBottom>
+                    {template.name}
+                  </Typography>
+                  <Typography variant='body2' color='text.secondary' gutterBottom>
+                    {template.fields.length} fields
+                  </Typography>
+                  <Box
+                    sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}
+                  >
+                    {template.fields.slice(0, 4).map((field) => (
+                      <Chip
+                        key={field.id}
+                        label={field.name}
+                        size='small'
+                        variant='outlined'
+                        sx={{ fontSize: '0.7rem' }}
+                      />
+                    ))}
+                    {template.fields.length > 4 && (
+                      <Chip
+                        label={`+${template.fields.length - 4} more`}
+                        size='small'
+                        variant='outlined'
+                        color='primary'
+                        sx={{ fontSize: '0.7rem' }}
+                      />
+                    )}
+                  </Box>
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setTemplateDialogOpen(false)}>Cancel</Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Action Menu */}
       <Menu
