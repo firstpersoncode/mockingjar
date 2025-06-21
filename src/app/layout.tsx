@@ -29,7 +29,9 @@ export default function RootLayout({
       </head>
       <body>
         <QueryProvider>
-          <MUIThemeProvider>{children}</MUIThemeProvider>
+          <MUIThemeProvider>
+            {children}
+          </MUIThemeProvider>
         </QueryProvider>
       </body>
     </html>

@@ -8,12 +8,15 @@ import {
   Menu,
   MenuItem,
   Stack,
+  Tooltip,
 } from '@mui/material';
 import {
   AccountCircle,
   ArrowBack,
   Logout as LogoutIcon,
 } from '@mui/icons-material';
+import GitHubButton from './GitHubButton';
+import NPMButton from './NPMButton';
 
 export default function AppBar({
   title,
@@ -50,6 +53,7 @@ export default function AppBar({
           borderBottom: '1px solid',
           borderColor: 'divider',
           py: 2,
+          gap: 2,
         }}
       >
         {onBack && (
@@ -65,18 +69,32 @@ export default function AppBar({
         <Typography variant='h6' noWrap component='div' sx={{ flexGrow: 1 }}>
           {title}
         </Typography>
+
         {!!session?.user && (
-          <IconButton
-            onClick={handleUserMenuOpen}
-            sx={{
-              color: 'inherit',
-              border: '.5px solid',
+          <Tooltip title={session.user.name || 'User Menu'}>
+            <IconButton
+              onClick={handleUserMenuOpen}
+              sx={{
+                color: 'inherit',
+                border: '.5px solid',
                 borderColor: 'divider',
-            }}
-          >
-            <AccountCircle />
-          </IconButton>
+                ml: 1,
+              }}
+            >
+              <AccountCircle />
+            </IconButton>
+          </Tooltip>
         )}
+
+        <GitHubButton
+          size={36}
+          href='https://github.com/firstpersoncode/mockingjar'
+        />
+
+        <NPMButton
+          size={36}
+          href='https://www.npmjs.com/package/mockingjar-lib'
+        />
       </Stack>
 
       {/* User Menu */}
