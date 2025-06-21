@@ -44,6 +44,7 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { SchemaField, JsonSchema } from '@/types/schema';
 import { format } from 'date-fns';
+import { useSchemas } from '@/hooks/useSchemas';
 import {
   convertSchemaToJson,
   findAndUpdateField,
@@ -81,6 +82,10 @@ export default function SchemaBuilder({
   const [fieldPropertiesDialogOpen, setFieldPropertiesDialogOpen] =
     useState(false);
   const [jsonPreviewDialogOpen, setJsonPreviewDialogOpen] = useState(false);
+  const [schemaSelectionDialogOpen, setSchemaSelectionDialogOpen] = useState(false);
+
+  // Hook to get available schemas
+  const { data: schemas = [], isLoading: schemasLoading } = useSchemas();
 
   // Local state for name editing
   const [tempName, setTempName] = useState(schema.name);
@@ -153,6 +158,11 @@ export default function SchemaBuilder({
   const selectField = useCallback((field: SchemaField) => {
     setSelectedField(field);
     setFieldPropertiesDialogOpen(true);
+  }, []);
+
+  // Handler for opening schema selection dialog
+  const handleSchemaSelection = useCallback(() => {
+    setSchemaSelectionDialogOpen(true);
   }, []);
 
   // Toggle collapse state for a field (UI only)
@@ -312,6 +322,7 @@ export default function SchemaBuilder({
                 <MenuItem value='url'>URL</MenuItem>
                 <MenuItem value='array'>Array</MenuItem>
                 <MenuItem value='object'>Object</MenuItem>
+                <MenuItem value='schema' onClick={handleSchemaSelection}>Schema</MenuItem>
               </Select>
             </FormControl>
             {/* Add Child button for array object items - inline with toolbar */}
@@ -545,6 +556,7 @@ export default function SchemaBuilder({
                 <MenuItem value='url'>URL</MenuItem>
                 <MenuItem value='object'>Object</MenuItem>
                 <MenuItem value='array'>Array</MenuItem>
+                <MenuItem value='schema' onClick={handleSchemaSelection}>Schema</MenuItem>
               </Select>
             </FormControl>
 
@@ -688,6 +700,7 @@ export default function SchemaBuilder({
                 <MenuItem value='url'>URL</MenuItem>
                 <MenuItem value='array'>Array</MenuItem>
                 <MenuItem value='object'>Object</MenuItem>
+                <MenuItem value='schema' onClick={handleSchemaSelection}>Schema</MenuItem>
               </Select>
             </FormControl>
 
@@ -904,6 +917,7 @@ export default function SchemaBuilder({
                     <MenuItem value='url'>URL</MenuItem>
                     <MenuItem value='array'>Array</MenuItem>
                     <MenuItem value='object'>Object</MenuItem>
+                    <MenuItem value='schema' onClick={handleSchemaSelection}>Schema</MenuItem>
                   </Select>
                 </FormControl>
 
@@ -1423,6 +1437,7 @@ export default function SchemaBuilder({
                   <MenuItem value='url'>URL</MenuItem>
                   <MenuItem value='array'>Array</MenuItem>
                   <MenuItem value='object'>Object</MenuItem>
+                  <MenuItem value='schema' onClick={handleSchemaSelection}>Schema</MenuItem>
                 </Select>
               </FormControl>
 
@@ -1771,6 +1786,62 @@ export default function SchemaBuilder({
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setJsonPreviewDialogOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Schema Selection Dialog */}
+      <Dialog
+        open={schemaSelectionDialogOpen}
+        onClose={() => setSchemaSelectionDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Select Schema</DialogTitle>
+        <DialogContent>
+          {schemasLoading ? (
+            <Box display="flex" justifyContent="center" p={3}>
+              <CircularProgress />
+            </Box>
+          ) : schemas.length === 0 ? (
+            <Typography color="text.secondary" sx={{ p: 3, textAlign: 'center' }}>
+              No schemas available
+            </Typography>
+          ) : (
+            <Stack spacing={1} sx={{ mt: 1 }}>
+              {schemas.map((schema) => (
+                <Box
+                  key={schema.id}
+                  sx={{
+                    p: 2,
+                    border: 1,
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    cursor: 'pointer',
+                    '&:hover': { backgroundColor: 'action.hover' },
+                  }}
+                  onClick={() => {
+                    // TODO: Handle schema selection - no-op for now
+                    console.log('Schema selected:', schema.name);
+                  }}
+                >
+                  <Typography variant="subtitle1" fontWeight="medium">
+                    {schema.name}
+                  </Typography>
+                  {schema.description && (
+                    <Typography variant="body2" color="text.secondary">
+                      {schema.description}
+                    </Typography>
+                  )}
+                  <Typography variant="caption" color="text.secondary">
+                    Updated: {format(new Date(schema.updatedAt), 'MMM d, yyyy')}
+                  </Typography>
+                </Box>
+              ))}
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSchemaSelectionDialogOpen(false)}>Cancel</Button>
         </DialogActions>
       </Dialog>
     </Box>

@@ -1,7 +1,7 @@
 export interface SchemaField {
   id: string;
   name: string;
-  type: 'text' | 'number' | 'boolean' | 'date' | 'email' | 'url' | 'array' | 'object';
+  type: 'text' | 'number' | 'boolean' | 'date' | 'email' | 'url' | 'array' | 'object' | 'schema';
   logic?: {
     required?: boolean;
     minLength?: number;
