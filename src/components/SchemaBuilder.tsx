@@ -42,7 +42,7 @@ import {
   CheckCircleOutline,
 } from '@mui/icons-material';
 import { v4 as uuidv4 } from 'uuid';
-import { SchemaField, JsonSchema } from '@/types/schema';
+import { SchemaField, JsonSchema, SavedSchema } from '@/types/schema';
 import { format } from 'date-fns';
 import { useSchemas } from '@/hooks/useSchemas';
 import {
@@ -52,6 +52,7 @@ import {
 } from '../lib/schema';
 interface SchemaBuilderProps {
   updatedAt?: Date;
+  schemaId?: string; // Optional schema ID, defaults to "new" for new schemas
   initialSchema?: JsonSchema;
   onSave: (schema: JsonSchema) => void;
   onUpdate?: (schema: JsonSchema) => void;
@@ -64,6 +65,7 @@ interface SchemaBuilderProps {
 
 export default function SchemaBuilder({
   updatedAt,
+  schemaId = 'new',
   initialSchema = {
     name: 'New Schema',
     description: '',
@@ -82,7 +84,11 @@ export default function SchemaBuilder({
   const [fieldPropertiesDialogOpen, setFieldPropertiesDialogOpen] =
     useState(false);
   const [jsonPreviewDialogOpen, setJsonPreviewDialogOpen] = useState(false);
-  const [schemaSelectionDialogOpen, setSchemaSelectionDialogOpen] = useState(false);
+  const [schemaSelectionDialogOpen, setSchemaSelectionDialogOpen] =
+    useState(false);
+  const [targetFieldIdForSchema, setTargetFieldIdForSchema] = useState<
+    string | null
+  >(null);
 
   // Hook to get available schemas
   const { data: schemas = [], isLoading: schemasLoading } = useSchemas();
@@ -161,9 +167,50 @@ export default function SchemaBuilder({
   }, []);
 
   // Handler for opening schema selection dialog
-  const handleSchemaSelection = useCallback(() => {
+  const handleSchemaSelection = useCallback((fieldId: string) => {
+    setTargetFieldIdForSchema(fieldId);
     setSchemaSelectionDialogOpen(true);
   }, []);
+
+  // Handler for selecting a schema from the dialog
+  const handleSchemaSelected = useCallback(
+    (selectedSchema: SavedSchema) => {
+      if (!targetFieldIdForSchema) return;
+
+      // Update the schema state to populate the target field with selected schema's fields
+      // Helper function to convert to PascalCase
+      const toPascalCase = (str: string): string => {
+        return str
+          .replace(/\s+/g, ' ') // Normalize whitespace
+          .split(' ')
+          .map(
+            (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+          )
+          .join('');
+      };
+
+      setSchema((prevSchema) => ({
+        ...prevSchema,
+        fields: findAndUpdateField(
+          prevSchema.fields,
+          targetFieldIdForSchema,
+          (field) => ({
+            ...field,
+            type: 'object',
+            name: toPascalCase(selectedSchema.name),
+            children: selectedSchema.structure.fields.filter(
+              (f) => f.id !== targetFieldIdForSchema
+            ),
+          })
+        ),
+      }));
+
+      // Close dialog and clear target field
+      setSchemaSelectionDialogOpen(false);
+      setTargetFieldIdForSchema(null);
+    },
+    [targetFieldIdForSchema]
+  );
 
   // Toggle collapse state for a field (UI only)
   const toggleFieldCollapse = useCallback((fieldId: string) => {
@@ -279,6 +326,12 @@ export default function SchemaBuilder({
                 value={arrayItem.type}
                 onChange={(e) => {
                   const newType = e.target.value as SchemaField['type'];
+
+                  if (newType === 'schema') {
+                    handleSchemaSelection(arrayItem.id);
+                    return;
+                  }
+
                   const updates: Partial<SchemaField> = { type: newType };
 
                   if (newType === 'object') {
@@ -322,7 +375,7 @@ export default function SchemaBuilder({
                 <MenuItem value='url'>URL</MenuItem>
                 <MenuItem value='array'>Array</MenuItem>
                 <MenuItem value='object'>Object</MenuItem>
-                <MenuItem value='schema' onClick={handleSchemaSelection}>Schema</MenuItem>
+                <MenuItem value='schema'>Schema</MenuItem>
               </Select>
             </FormControl>
             {/* Add Child button for array object items - inline with toolbar */}
@@ -500,6 +553,12 @@ export default function SchemaBuilder({
                 value={arrayItem.arrayItemType?.type || 'text'}
                 onChange={(e) => {
                   const newItemType = e.target.value as SchemaField['type'];
+
+                  if (newItemType === 'schema') {
+                    handleSchemaSelection(arrayItem.id);
+                    return;
+                  }
+
                   const updatedArrayItem = {
                     ...arrayItem,
                     arrayItemType: {
@@ -556,7 +615,7 @@ export default function SchemaBuilder({
                 <MenuItem value='url'>URL</MenuItem>
                 <MenuItem value='object'>Object</MenuItem>
                 <MenuItem value='array'>Array</MenuItem>
-                <MenuItem value='schema' onClick={handleSchemaSelection}>Schema</MenuItem>
+                <MenuItem value='schema'>Schema</MenuItem>
               </Select>
             </FormControl>
 
@@ -657,6 +716,12 @@ export default function SchemaBuilder({
                 value={field.type}
                 onChange={(e) => {
                   const newType = e.target.value as SchemaField['type'];
+
+                  if (newType === 'schema') {
+                    handleSchemaSelection(field.id);
+                    return;
+                  }
+
                   const updates: Partial<SchemaField> = { type: newType };
 
                   if (newType === 'object') {
@@ -700,7 +765,7 @@ export default function SchemaBuilder({
                 <MenuItem value='url'>URL</MenuItem>
                 <MenuItem value='array'>Array</MenuItem>
                 <MenuItem value='object'>Object</MenuItem>
-                <MenuItem value='schema' onClick={handleSchemaSelection}>Schema</MenuItem>
+                <MenuItem value='schema'>Schema</MenuItem>
               </Select>
             </FormControl>
 
@@ -868,6 +933,12 @@ export default function SchemaBuilder({
                     value={field.arrayItemType?.type || 'text'}
                     onChange={(e) => {
                       const newItemType = e.target.value as SchemaField['type'];
+
+                      if (newItemType === 'schema') {
+                        handleSchemaSelection(field.id);
+                        return;
+                      }
+
                       const updatedArrayItem = {
                         id: field.arrayItemType?.id || uuidv4(),
                         name: field.arrayItemType?.name || 'item',
@@ -917,7 +988,7 @@ export default function SchemaBuilder({
                     <MenuItem value='url'>URL</MenuItem>
                     <MenuItem value='array'>Array</MenuItem>
                     <MenuItem value='object'>Object</MenuItem>
-                    <MenuItem value='schema' onClick={handleSchemaSelection}>Schema</MenuItem>
+                    <MenuItem value='schema'>Schema</MenuItem>
                   </Select>
                 </FormControl>
 
@@ -1401,6 +1472,12 @@ export default function SchemaBuilder({
                   value={selectedField.type}
                   onChange={(e) => {
                     const newType = e.target.value as SchemaField['type'];
+
+                    if (newType === 'schema') {
+                      handleSchemaSelection(selectedField.id);
+                      return;
+                    }
+
                     const updates: Partial<SchemaField> = { type: newType };
 
                     if (newType === 'object') {
@@ -1437,7 +1514,7 @@ export default function SchemaBuilder({
                   <MenuItem value='url'>URL</MenuItem>
                   <MenuItem value='array'>Array</MenuItem>
                   <MenuItem value='object'>Object</MenuItem>
-                  <MenuItem value='schema' onClick={handleSchemaSelection}>Schema</MenuItem>
+                  <MenuItem value='schema'>Schema</MenuItem>
                 </Select>
               </FormControl>
 
@@ -1793,55 +1870,64 @@ export default function SchemaBuilder({
       <Dialog
         open={schemaSelectionDialogOpen}
         onClose={() => setSchemaSelectionDialogOpen(false)}
-        maxWidth="md"
+        maxWidth='md'
         fullWidth
       >
         <DialogTitle>Select Schema</DialogTitle>
         <DialogContent>
           {schemasLoading ? (
-            <Box display="flex" justifyContent="center" p={3}>
+            <Box display='flex' justifyContent='center' p={3}>
               <CircularProgress />
             </Box>
-          ) : schemas.length === 0 ? (
-            <Typography color="text.secondary" sx={{ p: 3, textAlign: 'center' }}>
-              No schemas available
+          ) : schemas.filter(
+              (availableSchema) => availableSchema.id !== schemaId
+            ).length === 0 ? (
+            <Typography
+              color='text.secondary'
+              sx={{ p: 3, textAlign: 'center' }}
+            >
+              No other schemas available
             </Typography>
           ) : (
             <Stack spacing={1} sx={{ mt: 1 }}>
-              {schemas.map((schema) => (
-                <Box
-                  key={schema.id}
-                  sx={{
-                    p: 2,
-                    border: 1,
-                    borderColor: 'divider',
-                    borderRadius: 1,
-                    cursor: 'pointer',
-                    '&:hover': { backgroundColor: 'action.hover' },
-                  }}
-                  onClick={() => {
-                    // TODO: Handle schema selection - no-op for now
-                    console.log('Schema selected:', schema.name);
-                  }}
-                >
-                  <Typography variant="subtitle1" fontWeight="medium">
-                    {schema.name}
-                  </Typography>
-                  {schema.description && (
-                    <Typography variant="body2" color="text.secondary">
-                      {schema.description}
+              {schemas
+                .filter((availableSchema) => availableSchema.id !== schemaId)
+                .map((schemaItem) => (
+                  <Box
+                    key={schemaItem.id}
+                    sx={{
+                      p: 2,
+                      border: 1,
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                      cursor: 'pointer',
+                      '&:hover': { backgroundColor: 'action.hover' },
+                    }}
+                    onClick={() => {
+                      handleSchemaSelected(schemaItem);
+                    }}
+                  >
+                    <Typography variant='subtitle1' fontWeight='medium'>
+                      {schemaItem.name}
                     </Typography>
-                  )}
-                  <Typography variant="caption" color="text.secondary">
-                    Updated: {format(new Date(schema.updatedAt), 'MMM d, yyyy')}
-                  </Typography>
-                </Box>
-              ))}
+                    {schemaItem.description && (
+                      <Typography variant='body2' color='text.secondary'>
+                        {schemaItem.description}
+                      </Typography>
+                    )}
+                    <Typography variant='caption' color='text.secondary'>
+                      Updated:{' '}
+                      {format(new Date(schemaItem.updatedAt), 'MMM d, yyyy')}
+                    </Typography>
+                  </Box>
+                ))}
             </Stack>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setSchemaSelectionDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => setSchemaSelectionDialogOpen(false)}>
+            Cancel
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

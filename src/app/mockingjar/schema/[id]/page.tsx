@@ -159,6 +159,7 @@ export default function SchemaBuilderPage() {
       {isFetched ? (
         <SchemaBuilder
           updatedAt={savedSchema?.updatedAt}
+          schemaId={schemaId}
           initialSchema={savedSchema?.structure}
           onSave={handleSave}
           onUpdate={handleUpdate}
