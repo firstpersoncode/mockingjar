@@ -6,7 +6,7 @@ import { JsonSchema } from 'mockingjar-lib/dist/types/schema';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -40,7 +40,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -49,11 +49,13 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id: schemaId } = await params;
+
     const body: JsonSchema = await request.json();
 
     const schema = await prisma.schema.updateMany({
       where: {
-        id: params.id,
+        id: schemaId,
         userId: session.user.id,
       },
       data: {
@@ -79,7 +81,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -88,9 +90,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id: schemaId } = await params;
+
     const schema = await prisma.schema.deleteMany({
       where: {
-        id: params.id,
+        id: schemaId,
         userId: session.user.id,
       },
     });
