@@ -7,57 +7,38 @@ import {
   Box,
   Card,
   CardContent,
-  TextField,
   Button,
   Typography,
   Alert,
   CircularProgress,
   Container,
 } from '@mui/material';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-
-const signInSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(1, 'Password is required'),
-});
-
-type SignInForm = z.infer<typeof signInSchema>;
+import GoogleIcon from '@mui/icons-material/Google';
 
 export default function SignInPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<SignInForm>({
-    resolver: zodResolver(signInSchema),
-  });
-
-  const onSubmit = async (data: SignInForm) => {
+  const handleGoogleSignIn = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const result = await signIn('credentials', {
-        email: data.email,
-        password: data.password,
+      const result = await signIn('google', {
         redirect: false,
+        callbackUrl: '/mockingjar/schema',
       });
 
       if (result?.error) {
-        setError('Invalid credentials');
-      } else {
+        setError('Failed to sign in with Google. Please try again.');
+      } else if (result?.url) {
         // Refresh session and redirect
         await getSession();
         router.push('/mockingjar/schema');
       }
     } catch (err: unknown) {
-      setError('An error occurred. Please try again.' + (err instanceof Error ? `: ${err.message}` : ''));
+      setError('An error occurred during sign-in. Please try again.' + (err instanceof Error ? `: ${err.message}` : ''));
     } finally {
       setLoading(false);
     }
@@ -118,59 +99,28 @@ export default function SignInPage() {
               </Alert>
             )}
 
-            <Box component="form" onSubmit={handleSubmit(onSubmit)}>
-              <TextField
-                {...register('email')}
-                label="Email"
-                type="email"
-                fullWidth
-                margin="normal"
-                error={!!errors.email}
-                helperText={errors.email?.message}
-                disabled={loading}
-                sx={{
-                  '& .MuiInputBase-input': {
-                    fontSize: { xs: '16px', sm: '1rem' }, // Prevents zoom on iOS
-                  },
-                }}
-              />
-
-              <TextField
-                {...register('password')}
-                label="Password"
-                type="password"
-                fullWidth
-                margin="normal"
-                error={!!errors.password}
-                helperText={errors.password?.message}
-                disabled={loading}
-                sx={{
-                  '& .MuiInputBase-input': {
-                    fontSize: { xs: '16px', sm: '1rem' }, // Prevents zoom on iOS
-                  },
-                }}
-              />
-
-              <Button
-                type="submit"
-                fullWidth
-                variant="contained"
-                size="large"
-                disabled={loading}
-                sx={{ 
-                  mt: { xs: 2, sm: 3 }, 
-                  mb: { xs: 1, sm: 2 },
-                  py: { xs: 1.5, sm: 1.75 },
-                  fontSize: { xs: '0.875rem', sm: '1rem' },
-                }}
-              >
-                {loading ? (
-                  <CircularProgress size={24} color="inherit" />
-                ) : (
-                  'Sign In'
-                )}
-              </Button>
-            </Box>
+            <Button
+              onClick={handleGoogleSignIn}
+              fullWidth
+              variant="outlined"
+              size="large"
+              disabled={loading}
+              startIcon={loading ? <CircularProgress size={20} /> : <GoogleIcon />}
+              sx={{ 
+                mt: { xs: 1, sm: 2 }, 
+                mb: { xs: 2, sm: 3 },
+                py: { xs: 1.5, sm: 1.75 },
+                fontSize: { xs: '0.875rem', sm: '1rem' },
+                borderColor: '#4285f4',
+                color: '#4285f4',
+                '&:hover': {
+                  borderColor: '#3367d6',
+                  backgroundColor: 'rgba(66, 133, 244, 0.04)',
+                },
+              }}
+            >
+              {loading ? 'Signing in...' : 'Continue with Google'}
+            </Button>
 
             <Typography 
               variant="body2" 
@@ -181,8 +131,7 @@ export default function SignInPage() {
                 fontSize: { xs: '0.75rem', sm: '0.875rem' },
               }}
             >
-              For this MVP, any email/password combination will work.
-              Your account will be created automatically.
+              Secure authentication powered by Google OAuth
             </Typography>
           </CardContent>
         </Card>

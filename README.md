@@ -201,11 +201,30 @@ DATABASE_URL="postgresql://username:password@localhost:5432/mockingjar"
 NEXTAUTH_SECRET="your-secret-key-minimum-32-characters"
 NEXTAUTH_URL="http://localhost:3000"
 
+# Google OAuth Configuration
+GOOGLE_CLIENT_ID="your-google-client-id"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"
+
 # AI Integration
 ANTHROPIC_API_KEY="your-anthropic-api-key"
 
 # Optional: Development Configuration
 NODE_ENV="development"
+```
+
+### Google OAuth Setup
+To enable Google authentication, you need to set up OAuth credentials:
+
+1. **Go to Google Cloud Console**: Visit [console.cloud.google.com](https://console.cloud.google.com)
+2. **Create/Select Project**: Create a new project or select an existing one
+3. **Enable Google+ API**: Navigate to APIs & Services > Library, search for "Google+ API" and enable it
+4. **Create OAuth Credentials**:
+   - Go to APIs & Services > Credentials
+   - Click "Create Credentials" > "OAuth client ID"
+   - Select "Web application"
+   - Add authorized redirect URI: `http://localhost:3000/api/auth/callback/google`
+   - For production: `https://yourdomain.com/api/auth/callback/google`
+5. **Copy Credentials**: Copy the Client ID and Client Secret to your `.env` file
 ```
 
 ### Installation Steps
