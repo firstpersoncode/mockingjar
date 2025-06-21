@@ -38,7 +38,6 @@ import {
   ExpandMore as ExpandMoreIcon,
   AddCircle as AddChildIcon,
   Settings as SettingsIcon,
-  KeyboardArrowRight as ArrowRightIcon,
   KeyboardArrowDown as ArrowDownIcon,
   CheckCircleOutline,
 } from '@mui/icons-material';
@@ -221,7 +220,7 @@ export default function SchemaBuilder({
   ): React.ReactNode => {
     if (arrayItem.type === 'object') {
       return (
-        <Box key={`${arrayItem.id}-arrayitem`}>
+        <Box key={`${arrayItem.id}-arrayitem`} sx={{ mb: 1 }}>
           <Box
             display='flex'
             alignItems='center'
@@ -230,14 +229,14 @@ export default function SchemaBuilder({
             px={1}
             ml={level * 5}
             sx={{
-              cursor: 'pointer',
               '&:hover': { backgroundColor: 'action.hover' },
               backgroundColor: `rgba(0,0,0,${level * 0.015})`,
-              borderTopLeftRadius: 4,
-              borderBottomLeftRadius: 4,
+              borderRadius: 2,
+              border: '1px dashed',
+              borderColor: 'divider',
+              mb: 1,
             }}
           >
-            <Box sx={{ width: 24 }} /> {/* Spacer for alignment */}
             <Button
               variant='outlined'
               size='small'
@@ -351,7 +350,7 @@ export default function SchemaBuilder({
             >
               Add Field
             </Button>
-            <Box sx={{ flexGrow: 1 }} />
+
             {arrayItem.logic?.required && (
               <Chip
                 label='Required'
@@ -362,10 +361,76 @@ export default function SchemaBuilder({
                 onClick={(e) => e.stopPropagation()}
               />
             )}
+
+            {arrayItem.logic?.enum && (
+              <Chip
+                label='Enum'
+                size='small'
+                color='info'
+                variant='outlined'
+                sx={{ fontSize: '0.65rem', height: '18px' }}
+                onClick={(e) => e.stopPropagation()}
+              />
+            )}
+
+            {(arrayItem.logic?.minItems || arrayItem.logic?.maxItems) && (
+              <Chip
+                label={`Min: ${arrayItem.logic?.minItems || '0'} Max: ${
+                  arrayItem.logic?.maxItems || '10'
+                }`}
+                size='small'
+                color='info'
+                variant='outlined'
+                sx={{ fontSize: '0.65rem', height: '18px' }}
+                onClick={(e) => e.stopPropagation()}
+              />
+            )}
+
+            <Box sx={{ flexGrow: 1 }} />
+
+            {/* Children count display when collapsed */}
+            {arrayItem.children &&
+              arrayItem.children.length > 0 &&
+              collapsedFields.has(arrayItem!.id) && (
+                <Chip
+                  label={`${arrayItem.children.length} field${
+                    arrayItem.children.length !== 1 ? 's' : ''
+                  }`}
+                  size='small'
+                  color='info'
+                  variant='outlined'
+                  sx={{ fontSize: '0.65rem', height: '18px' }}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              )}
+
+            {/* Collapsible arrow for fields with children */}
+            {arrayItem.children && arrayItem.children.length > 0 ? (
+              <IconButton
+                size='small'
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFieldCollapse(arrayItem!.id);
+                }}
+                sx={{ p: 0.25 }}
+              >
+                <ArrowDownIcon
+                  fontSize='small'
+                  sx={{
+                    transform: !collapsedFields.has(arrayItem!.id)
+                      ? 'rotate(180deg)'
+                      : undefined,
+                  }}
+                />
+              </IconButton>
+            ) : (
+              <Box sx={{ width: 24 }} /> // Spacer to align fields without children
+            )}
           </Box>
 
           {arrayItem.children &&
             arrayItem.children.length > 0 &&
+            !collapsedFields.has(arrayItem!.id) &&
             renderTreeItems(
               arrayItem.children,
               [...parentPath, 'arrayItem'],
@@ -375,7 +440,7 @@ export default function SchemaBuilder({
       );
     } else if (arrayItem.type === 'array' && arrayItem.arrayItemType) {
       return (
-        <Box key={`${arrayItem.id}-nestedarray`}>
+        <Box key={`${arrayItem.id}-nestedarray`} sx={{ mb: 1 }}>
           <Box
             display='flex'
             alignItems='center'
@@ -385,11 +450,12 @@ export default function SchemaBuilder({
             ml={level * 5}
             sx={{
               backgroundColor: `rgba(0,0,0,${level * 0.015})`,
-              borderTopLeftRadius: 4,
-              borderBottomLeftRadius: 4,
+              borderRadius: 2,
+              border: '1px dashed',
+              borderColor: 'divider',
+              mb: 1,
             }}
           >
-            <Box sx={{ width: 24 }} /> {/* Spacer for alignment */}
             <Button
               variant='outlined'
               size='small'
@@ -481,6 +547,20 @@ export default function SchemaBuilder({
                 <MenuItem value='array'>Array</MenuItem>
               </Select>
             </FormControl>
+
+            {(arrayItem.logic?.minItems || arrayItem.logic?.maxItems) && (
+              <Chip
+                label={`Min: ${arrayItem.logic?.minItems || '0'} Max: ${
+                  arrayItem.logic?.maxItems || '10'
+                }`}
+                size='small'
+                color='info'
+                variant='outlined'
+                sx={{ fontSize: '0.65rem', height: '18px' }}
+                onClick={(e) => e.stopPropagation()}
+              />
+            )}
+
             <Box sx={{ flexGrow: 1 }} />
           </Box>
 
@@ -524,33 +604,14 @@ export default function SchemaBuilder({
             px={1}
             ml={level * 5}
             sx={{
-              cursor: 'pointer',
               '&:hover': { backgroundColor: 'action.hover' },
               backgroundColor: `rgba(0,0,0,${level * 0.015})`,
-              borderTopLeftRadius: 4,
-              borderBottomLeftRadius: 4,
+              borderRadius: 2,
+              border: '1px dashed',
+              borderColor: 'divider',
+              mb: 1,
             }}
           >
-            {/* Collapsible arrow for fields with children */}
-            {hasChildren ? (
-              <IconButton
-                size='small'
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleFieldCollapse(field.id);
-                }}
-                sx={{ p: 0.25 }}
-              >
-                {isCollapsed ? (
-                  <ArrowRightIcon fontSize='small' />
-                ) : (
-                  <ArrowDownIcon fontSize='small' />
-                )}
-              </IconButton>
-            ) : (
-              <Box sx={{ width: 24 }} /> // Spacer to align fields without children
-            )}
-
             {/* Field name button with settings icon */}
             <Button
               variant='outlined'
@@ -669,6 +730,43 @@ export default function SchemaBuilder({
               </Button>
             )}
 
+            {field.logic?.required && (
+              <Chip
+                label='Required'
+                size='small'
+                color='error'
+                variant='outlined'
+                sx={{ fontSize: '0.65rem', height: '18px' }}
+                onClick={(e) => e.stopPropagation()}
+              />
+            )}
+
+            {field.logic?.enum && (
+              <Chip
+                label='Enum'
+                size='small'
+                color='info'
+                variant='outlined'
+                sx={{ fontSize: '0.65rem', height: '18px' }}
+                onClick={(e) => e.stopPropagation()}
+              />
+            )}
+
+            {(field.logic?.minItems || field.logic?.maxItems) && (
+              <Chip
+                label={`Min: ${field.logic?.minItems || '0'} Max: ${
+                  field.logic?.maxItems || '10'
+                }`}
+                size='small'
+                color='info'
+                variant='outlined'
+                sx={{ fontSize: '0.65rem', height: '18px' }}
+                onClick={(e) => e.stopPropagation()}
+              />
+            )}
+
+            <Box sx={{ flexGrow: 1 }} />
+
             {/* Children count display when collapsed */}
             {hasChildren && isCollapsed && (
               <Chip
@@ -683,27 +781,25 @@ export default function SchemaBuilder({
               />
             )}
 
-            <Box sx={{ flexGrow: 1 }} />
-
-            {field.logic?.required && (
-              <Chip
-                label='Required'
+            {/* Collapsible arrow for fields with children */}
+            {hasChildren ? (
+              <IconButton
                 size='small'
-                color='error'
-                variant='outlined'
-                sx={{ fontSize: '0.65rem', height: '18px' }}
-                onClick={(e) => e.stopPropagation()}
-              />
-            )}
-            {field.logic?.enum && (
-              <Chip
-                label='Enum'
-                size='small'
-                color='info'
-                variant='outlined'
-                sx={{ fontSize: '0.65rem', height: '18px' }}
-                onClick={(e) => e.stopPropagation()}
-              />
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFieldCollapse(field.id);
+                }}
+                sx={{ p: 0.25 }}
+              >
+                <ArrowDownIcon
+                  fontSize='small'
+                  sx={{
+                    transform: !isCollapsed ? 'rotate(180deg)' : undefined,
+                  }}
+                />
+              </IconButton>
+            ) : (
+              <Box sx={{ width: 24 }} /> // Spacer to align fields without children
             )}
           </Box>
 
@@ -718,36 +814,14 @@ export default function SchemaBuilder({
                 px={1}
                 ml={(level + 1) * 5}
                 sx={{
-                  cursor: 'pointer',
                   '&:hover': { backgroundColor: 'action.hover' },
                   backgroundColor: `rgba(0,0,0,${(level + 1) * 0.015})`,
-                  borderTopLeftRadius: 4,
-                  borderBottomLeftRadius: 4,
+                  borderRadius: 2,
+                  border: '1px dashed',
+                  borderColor: 'divider',
+                  mb: 1,
                 }}
               >
-                {/* Collapsible arrow for array items with children */}
-                {(field.arrayItemType?.type === 'object' &&
-                  field.arrayItemType?.children &&
-                  field.arrayItemType.children.length > 0) ||
-                (field.arrayItemType?.type === 'array' &&
-                  field.arrayItemType?.arrayItemType) ? (
-                  <IconButton
-                    size='small'
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleFieldCollapse(field.arrayItemType!.id);
-                    }}
-                    sx={{ p: 0.25 }}
-                  >
-                    {collapsedFields.has(field.arrayItemType!.id) ? (
-                      <ArrowRightIcon fontSize='small' />
-                    ) : (
-                      <ArrowDownIcon fontSize='small' />
-                    )}
-                  </IconButton>
-                ) : (
-                  <Box sx={{ width: 24 }} /> // Spacer to align array items without children
-                )}
                 <Button
                   variant='outlined'
                   size='small'
@@ -879,7 +953,45 @@ export default function SchemaBuilder({
                   </Button>
                 )}
 
-                {/* Children count display when collapsed for array items */}
+                {field.arrayItemType?.logic?.required && (
+                  <Chip
+                    label='Required'
+                    size='small'
+                    color='error'
+                    variant='outlined'
+                    sx={{ fontSize: '0.65rem', height: '18px' }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                )}
+
+                {field.arrayItemType?.logic?.enum && (
+                  <Chip
+                    label='Enum'
+                    size='small'
+                    color='info'
+                    variant='outlined'
+                    sx={{ fontSize: '0.65rem', height: '18px' }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                )}
+
+                {(field.arrayItemType?.logic?.minItems ||
+                  field.arrayItemType?.logic?.maxItems) && (
+                  <Chip
+                    label={`Min: ${
+                      field.arrayItemType?.logic?.minItems || '0'
+                    } Max: ${field.arrayItemType?.logic?.maxItems || '10'}`}
+                    size='small'
+                    color='info'
+                    variant='outlined'
+                    sx={{ fontSize: '0.65rem', height: '18px' }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                )}
+
+                <Box sx={{ flexGrow: 1 }} />
+
+                {/* Children count display when collapsed */}
                 {((field.arrayItemType?.type === 'object' &&
                   field.arrayItemType?.children &&
                   field.arrayItemType.children.length > 0) ||
@@ -906,16 +1018,31 @@ export default function SchemaBuilder({
                     />
                   )}
 
-                <Box sx={{ flexGrow: 1 }} />
-                {field.arrayItemType?.logic?.required && (
-                  <Chip
-                    label='Required'
+                {/* Collapsible arrow for fields with children */}
+                {(field.arrayItemType?.type === 'object' &&
+                  field.arrayItemType?.children &&
+                  field.arrayItemType.children.length > 0) ||
+                (field.arrayItemType?.type === 'array' &&
+                  field.arrayItemType?.arrayItemType) ? (
+                  <IconButton
                     size='small'
-                    color='error'
-                    variant='outlined'
-                    sx={{ fontSize: '0.65rem', height: '18px' }}
-                    onClick={(e) => e.stopPropagation()}
-                  />
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFieldCollapse(field.arrayItemType!.id);
+                    }}
+                    sx={{ p: 0.25 }}
+                  >
+                    <ArrowDownIcon
+                      fontSize='small'
+                      sx={{
+                        transform: !collapsedFields.has(field.arrayItemType!.id)
+                          ? 'rotate(180deg)'
+                          : undefined,
+                      }}
+                    />
+                  </IconButton>
+                ) : (
+                  <Box sx={{ width: 24 }} /> // Spacer to align fields without children
                 )}
               </Box>
 
@@ -977,8 +1104,8 @@ export default function SchemaBuilder({
         <Paper
           sx={{
             p: { xs: 1, sm: 2 },
-            border: "2px dashed",
-            borderColor: 'divider'
+            border: '2px dashed',
+            borderColor: 'divider',
           }}
         >
           <Box
@@ -1362,10 +1489,10 @@ export default function SchemaBuilder({
                             type='number'
                             value={selectedField.logic?.minLength || ''}
                             onChange={(e) => {
-                               let value = e.target.value;
-                            if (value && parseInt(value) < 0) {
-                              value = '0'; // Prevent negative values
-                            }
+                              let value = e.target.value;
+                              if (value && parseInt(value) < 0) {
+                                value = '0'; // Prevent negative values
+                              }
 
                               if (value && parseInt(value) > 500) {
                                 value = '500'; // Limit max to 500
@@ -1375,7 +1502,9 @@ export default function SchemaBuilder({
                                 ...selectedField,
                                 logic: {
                                   ...selectedField.logic,
-                                  minLength: value ? parseInt(value) : undefined,
+                                  minLength: value
+                                    ? parseInt(value)
+                                    : undefined,
                                 },
                               };
                               updateField(updatedField);
@@ -1389,10 +1518,10 @@ export default function SchemaBuilder({
                             type='number'
                             value={selectedField.logic?.maxLength || ''}
                             onChange={(e) => {
-                               let value = e.target.value;
-                            if (value && parseInt(value) < 0) {
-                              value = '0'; // Prevent negative values
-                            }
+                              let value = e.target.value;
+                              if (value && parseInt(value) < 0) {
+                                value = '0'; // Prevent negative values
+                              }
 
                               if (value && parseInt(value) > 500) {
                                 value = '500'; // Limit max to 500
@@ -1401,7 +1530,9 @@ export default function SchemaBuilder({
                                 ...selectedField,
                                 logic: {
                                   ...selectedField.logic,
-                                  maxLength: value ? parseInt(value) : undefined,
+                                  maxLength: value
+                                    ? parseInt(value)
+                                    : undefined,
                                 },
                               };
                               updateField(updatedField);
@@ -1445,7 +1576,6 @@ export default function SchemaBuilder({
                           type='number'
                           value={selectedField.logic?.min || ''}
                           onChange={(e) => {
-
                             let value = e.target.value;
                             if (value && parseInt(value) < 0) {
                               value = '0'; // Prevent negative values
@@ -1469,7 +1599,7 @@ export default function SchemaBuilder({
                           type='number'
                           value={selectedField.logic?.max || ''}
                           onChange={(e) => {
-                             let value = e.target.value;
+                            let value = e.target.value;
                             if (value && parseInt(value) < 0) {
                               value = '0'; // Prevent negative values
                             }
@@ -1517,9 +1647,7 @@ export default function SchemaBuilder({
                               ...selectedField,
                               logic: {
                                 ...selectedField.logic,
-                                minItems: value
-                                  ? parseInt(value)
-                                  : undefined,
+                                minItems: value ? parseInt(value) : undefined,
                               },
                             };
                             updateField(updatedField);
@@ -1541,7 +1669,7 @@ export default function SchemaBuilder({
                             if (value && parseInt(value) > 10) {
                               value = '10'; // Limit max to 10
                             }
-                            
+
                             const updatedField = {
                               ...selectedField,
                               logic: {
