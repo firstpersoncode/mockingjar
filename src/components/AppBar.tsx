@@ -54,6 +54,7 @@ export default function AppBar({
           borderColor: 'divider',
           py: 2,
           gap: 2,
+          pt: { xs: 5, md: 2 },
         }}
       >
         {onBack && (
@@ -70,31 +71,38 @@ export default function AppBar({
           {title}
         </Typography>
 
-        {!!session?.user && (
-          <Tooltip title={session.user.name || 'User Menu'}>
-            <IconButton
-              onClick={handleUserMenuOpen}
-              sx={{
-                color: 'inherit',
-                border: '.5px solid',
-                borderColor: 'divider',
-                ml: 1,
-              }}
-            >
-              <AccountCircle />
-            </IconButton>
-          </Tooltip>
-        )}
+        <Stack
+          sx={{ position: { xs: 'fixed', md: 'static' }, right: 10, top: 10 }}
+          direction='row'
+          alignItems='center'
+          spacing={1}
+        >
+          {!!session?.user && (
+            <Tooltip title={session.user.name || 'User Menu'}>
+              <IconButton
+                onClick={handleUserMenuOpen}
+                sx={{
+                  color: 'inherit',
+                  border: '.5px solid',
+                  borderColor: 'divider',
+                  ml: 1,
+                }}
+              >
+                <AccountCircle />
+              </IconButton>
+            </Tooltip>
+          )}
 
-        <GitHubButton
-          size={36}
-          href='https://github.com/firstpersoncode/mockingjar'
-        />
+          <GitHubButton
+            size={36}
+            href='https://github.com/firstpersoncode/mockingjar'
+          />
 
-        <NPMButton
-          size={36}
-          href='https://www.npmjs.com/package/mockingjar-lib'
-        />
+          <NPMButton
+            size={36}
+            href='https://www.npmjs.com/package/mockingjar-lib'
+          />
+        </Stack>
       </Stack>
 
       {/* User Menu */}

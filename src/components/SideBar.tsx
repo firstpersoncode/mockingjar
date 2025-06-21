@@ -13,12 +13,14 @@ import {
   ListItemText,
   useMediaQuery,
   useTheme,
+  IconButton,
 } from '@mui/material';
 import {
   Schema as SchemaIcon,
   DataObject as DataIcon,
   History as HistoryIcon,
   Settings as SettingsIcon,
+  Menu,
 } from '@mui/icons-material';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -38,13 +40,13 @@ const menuItems = [
     text: 'History',
     icon: <HistoryIcon sx={{ fontSize: '1rem' }} />,
     path: '/mockingjar/history',
-    disabled: true
+    disabled: true,
   },
   {
     text: 'Settings',
     icon: <SettingsIcon sx={{ fontSize: '1rem' }} />,
     path: '/mockingjar/settings',
-    disabled: true
+    disabled: true,
   },
 ];
 
@@ -121,21 +123,36 @@ export default function SideBar() {
   );
 
   return isMobile ? (
-    <Drawer
-      variant='temporary'
-      open={mobileOpen}
-      onClose={handleDrawerToggle}
-      ModalProps={{
-        keepMounted: true, // Better open performance on mobile.
-      }}
-      sx={{}}
-    >
-      {drawer}
-    </Drawer>
+    <>
+      <IconButton
+        color='inherit'
+        aria-label='open drawer'
+        onClick={handleDrawerToggle}
+        sx={{
+          position: 'fixed',
+          top: 10,
+          left: 10,
+          zIndex: 99999,
+        }}
+      >
+        <Menu />
+      </IconButton>
+      <Drawer
+        variant='temporary'
+        open={mobileOpen}
+        onClose={handleDrawerToggle}
+        ModalProps={{
+          keepMounted: true, // Better open performance on mobile.
+        }}
+        sx={{}}
+      >
+        {drawer}
+      </Drawer>
+    </>
   ) : (
     <Box
       sx={{
-        position: "sticky",
+        position: 'sticky',
         top: 0,
         borderRight: '1px solid',
         borderColor: 'divider',

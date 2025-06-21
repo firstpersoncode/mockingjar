@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, use } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Box,
@@ -20,6 +20,9 @@ import {
   MenuItem,
   Chip,
   CardActionArea,
+  useTheme,
+  useMediaQuery,
+  Fab,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -38,12 +41,14 @@ export default function SchemaList() {
   const { data: schemas, isLoading, error } = useSchemas();
   const saveSchema = useSaveSchema();
   const deleteSchema = useDeleteSchema();
-
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   // Memoize schema templates to prevent recreation on every render
   const schemaTemplates = useMemo(() => createSchemaTemplates(), []);
 
   // Create dropdown state
-  const [createDropdownAnchor, setCreateDropdownAnchor] = useState<null | HTMLElement>(null);
+  const [createDropdownAnchor, setCreateDropdownAnchor] =
+    useState<null | HTMLElement>(null);
 
   // Create dialog state (for "From Scratch" option)
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -100,7 +105,9 @@ export default function SchemaList() {
     setTemplateDialogOpen(true);
   };
 
-  const handleTemplateSelect = async (templateKey: keyof typeof schemaTemplates) => {
+  const handleTemplateSelect = async (
+    templateKey: keyof typeof schemaTemplates
+  ) => {
     const template = schemaTemplates[templateKey];
     const newSchema: JsonSchema = {
       name: template.name,
@@ -196,14 +203,24 @@ export default function SchemaList() {
             Manage your JSON schemas for data generation
           </Typography>
         </Box>
-        <Button
-          variant='contained'
-          endIcon={<ArrowDownIcon />}
-          onClick={handleCreateDropdownOpen}
-          size='large'
-        >
-          Create Schema
-        </Button>
+        {isMobile ? (
+          <Fab
+            sx={{ position: 'fixed', bottom: 20, right: 16 }}
+            onClick={handleCreateDropdownOpen}
+            color='primary'
+          >
+            <AddIcon />
+          </Fab>
+        ) : (
+          <Button
+            variant='contained'
+            endIcon={<ArrowDownIcon />}
+            onClick={handleCreateDropdownOpen}
+            size='large'
+          >
+            Create Schema
+          </Button>
+        )}
       </Box>
 
       {schemas && schemas.length === 0 ? (
@@ -254,7 +271,10 @@ export default function SchemaList() {
                 },
               }}
             >
-              <CardActionArea component="span" onClick={() => handleEditSchema(schema.id)}>
+              <CardActionArea
+                component='span'
+                onClick={() => handleEditSchema(schema.id)}
+              >
                 <CardContent sx={{ width: '100%', height: '100%' }}>
                   <Box
                     display='flex'
@@ -375,13 +395,19 @@ export default function SchemaList() {
                     boxShadow: 2,
                   },
                 }}
-                onClick={() => handleTemplateSelect(key as keyof typeof schemaTemplates)}
+                onClick={() =>
+                  handleTemplateSelect(key as keyof typeof schemaTemplates)
+                }
               >
                 <CardContent>
                   <Typography variant='h6' gutterBottom>
                     {template.name}
                   </Typography>
-                  <Typography variant='body2' color='text.secondary' gutterBottom>
+                  <Typography
+                    variant='body2'
+                    color='text.secondary'
+                    gutterBottom
+                  >
                     {template.fields.length} fields
                   </Typography>
                   <Box
