@@ -29,6 +29,9 @@ import {
   Stack,
   Skeleton,
   InputAdornment,
+  Card,
+  CardContent,
+  CardActionArea,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -166,6 +169,15 @@ export default function SchemaBuilder({
     setFieldPropertiesDialogOpen(true);
   }, []);
 
+  // Helper function to format dates
+  const formatDate = (date: Date) => {
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
   // Handler for opening schema selection dialog
   const handleSchemaSelection = useCallback((fieldId: string) => {
     setTargetFieldIdForSchema(fieldId);
@@ -194,14 +206,37 @@ export default function SchemaBuilder({
         fields: findAndUpdateField(
           prevSchema.fields,
           targetFieldIdForSchema,
-          (field) => ({
-            ...field,
-            type: 'object',
-            name: toPascalCase(selectedSchema.name),
-            children: selectedSchema.structure.fields.filter(
-              (f) => f.id !== targetFieldIdForSchema
-            ),
-          })
+          (field) => {
+            if (field.type === 'array' && field.arrayItemType) {
+              // If the field is an array, we need to update the array item type
+              return {
+                ...field,
+                arrayItemType: {
+                  ...field.arrayItemType,
+                  type: 'object',
+                  name:
+                    field.arrayItemType.name === 'newField'
+                      ? toPascalCase(selectedSchema.name)
+                      : field.arrayItemType.name,
+                  children: selectedSchema.structure.fields.filter(
+                    (f) => f.id !== targetFieldIdForSchema
+                  ),
+                },
+              };
+            }
+
+            return {
+              ...field,
+              type: 'object',
+              name:
+                field.name === 'newField'
+                  ? toPascalCase(selectedSchema.name)
+                  : field.name,
+              children: selectedSchema.structure.fields.filter(
+                (f) => f.id !== targetFieldIdForSchema
+              ),
+            };
+          }
         ),
       }));
 
@@ -1889,39 +1924,87 @@ export default function SchemaBuilder({
               No other schemas available
             </Typography>
           ) : (
-            <Stack spacing={1} sx={{ mt: 1 }}>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: {
+                  xs: '1fr',
+                  sm: 'repeat(2, 1fr)',
+                  md: 'repeat(2, 1fr)',
+                },
+                gap: 2,
+                mt: 1,
+                maxHeight: '60vh',
+                overflow: 'auto',
+              }}
+            >
               {schemas
                 .filter((availableSchema) => availableSchema.id !== schemaId)
                 .map((schemaItem) => (
-                  <Box
+                  <Card
                     key={schemaItem.id}
                     sx={{
-                      p: 2,
-                      border: 1,
-                      borderColor: 'divider',
-                      borderRadius: 1,
-                      cursor: 'pointer',
-                      '&:hover': { backgroundColor: 'action.hover' },
-                    }}
-                    onClick={() => {
-                      handleSchemaSelected(schemaItem);
+                      transition:
+                        'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: 4,
+                      },
                     }}
                   >
-                    <Typography variant='subtitle1' fontWeight='medium'>
-                      {schemaItem.name}
-                    </Typography>
-                    {schemaItem.description && (
-                      <Typography variant='body2' color='text.secondary'>
-                        {schemaItem.description}
-                      </Typography>
-                    )}
-                    <Typography variant='caption' color='text.secondary'>
-                      Updated:{' '}
-                      {format(new Date(schemaItem.updatedAt), 'MMM d, yyyy')}
-                    </Typography>
-                  </Box>
+                    <CardActionArea 
+                      component="span" 
+                      onClick={() => handleSchemaSelected(schemaItem)}
+                    >
+                      <CardContent sx={{ width: '100%', height: '100%' }}>
+                        <Box
+                          display='flex'
+                          justifyContent='space-between'
+                          alignItems='flex-start'
+                          mb={1}
+                        >
+                          <Typography
+                            variant='h6'
+                            component='h2'
+                            noWrap
+                            sx={{ flexGrow: 1, mr: 1 }}
+                          >
+                            {schemaItem.name}
+                          </Typography>
+                        </Box>
+
+                        {schemaItem.description && (
+                          <Typography
+                            variant='body2'
+                            color='text.secondary'
+                            sx={{
+                              mb: 2,
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            {schemaItem.description}
+                          </Typography>
+                        )}
+
+                        <Box display='flex' flexWrap='wrap' gap={1} mb={2}>
+                          <Chip
+                            label={`${schemaItem.structure.fields.length} fields`}
+                            size='small'
+                            variant='outlined'
+                          />
+                        </Box>
+
+                        <Typography variant='caption' color='text.secondary'>
+                          Created {formatDate(schemaItem.createdAt)}
+                        </Typography>
+                      </CardContent>
+                    </CardActionArea>
+                  </Card>
                 ))}
-            </Stack>
+            </Box>
           )}
         </DialogContent>
         <DialogActions>
