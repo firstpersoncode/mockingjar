@@ -977,6 +977,8 @@ export default function SchemaBuilder({
         <Paper
           sx={{
             p: { xs: 1, sm: 2 },
+            border: "2px dashed",
+            borderColor: 'divider'
           }}
         >
           <Box
