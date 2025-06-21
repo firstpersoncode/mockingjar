@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { generateJsonData } from '@/lib/generator';
-import { anthropic } from '@/lib/anthropic';
-import { GenerateDataParams } from '@/types/generation';
+import { generateJsonData } from 'mockingjar-lib';
+import { GenerateDataParams } from 'mockingjar-lib/dist/types/generation';
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,12 +31,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate data using hybrid strategy
-    const result = await generateJsonData(anthropic, schema, prompt, {
-      maxAttempts: 5,
-      enableFallback: true,
-      timeout: 60000,
-      count,
-    });
+    const result = await generateJsonData(
+      process.env.ANTHROPIC_API_KEY!,
+      schema,
+      prompt,
+      {
+        maxAttempts: 5,
+        enableFallback: true,
+        timeout: 60000,
+        count,
+      }
+    );
 
     if (result.success) {
       return NextResponse.json({

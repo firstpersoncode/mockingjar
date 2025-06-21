@@ -1,6 +1,6 @@
 'use client';
 import { v4 as uuidv4 } from 'uuid';
-import { SchemaField } from '@/types/schema';
+import { SchemaField } from 'mockingjar-lib/dist/types/schema';
 
 // Move schema templates outside component to prevent recreation on every render
 export const createSchemaTemplates = () => ({

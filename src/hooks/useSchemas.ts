@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { JsonSchema, SavedSchema } from '@/types/schema';
-import { GenerateDataParams, GenerationResult } from '@/types/generation';
+import { JsonSchema } from 'mockingjar-lib/dist/types/schema';
+import { GenerateDataParams, GenerationResult } from 'mockingjar-lib/dist/types/generation';
+import { SavedSchema } from '@/types/schema';
 
 
 export function useSchemas() {

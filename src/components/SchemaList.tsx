@@ -30,7 +30,7 @@ import {
   KeyboardArrowDown as ArrowDownIcon,
 } from '@mui/icons-material';
 import { useSchemas, useSaveSchema, useDeleteSchema } from '@/hooks/useSchemas';
-import { JsonSchema, SchemaField } from '@/types/schema';
+import { JsonSchema, SchemaField } from 'mockingjar-lib/dist/types/schema';
 import { createSchemaTemplates } from '@/lib/template';
 
 export default function SchemaList() {

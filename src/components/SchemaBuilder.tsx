@@ -44,15 +44,11 @@ import {
   KeyboardArrowDown as ArrowDownIcon,
   CheckCircleOutline,
 } from '@mui/icons-material';
-import { v4 as uuidv4 } from 'uuid';
-import { SchemaField, JsonSchema, SavedSchema } from '@/types/schema';
+import { SchemaField, JsonSchema } from 'mockingjar-lib/dist/types/schema';
+import { SavedSchema } from '@/types/schema';
 import { format } from 'date-fns';
 import { useSchemas } from '@/hooks/useSchemas';
-import {
-  convertSchemaToJson,
-  findAndUpdateField,
-  findAndRemoveField,
-} from '../lib/schema';
+import { add, convertSchemaToJson, remove, update } from 'mockingjar-lib';
 interface SchemaBuilderProps {
   updatedAt?: Date;
   schemaId?: string; // Optional schema ID, defaults to "new" for new schemas
@@ -189,56 +185,13 @@ export default function SchemaBuilder({
     (selectedSchema: SavedSchema) => {
       if (!targetFieldIdForSchema) return;
 
-      // Update the schema state to populate the target field with selected schema's fields
-      // Helper function to convert to PascalCase
-      const toPascalCase = (str: string): string => {
-        return str
-          .replace(/\s+/g, ' ') // Normalize whitespace
-          .split(' ')
-          .map(
-            (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-          )
-          .join('');
-      };
-
-      setSchema((prevSchema) => ({
-        ...prevSchema,
-        fields: findAndUpdateField(
-          prevSchema.fields,
+      setSchema((prevSchema) =>
+        update.fieldTypeSchema(
           targetFieldIdForSchema,
-          (field) => {
-            if (field.type === 'array' && field.arrayItemType) {
-              // If the field is an array, we need to update the array item type
-              return {
-                ...field,
-                arrayItemType: {
-                  ...field.arrayItemType,
-                  type: 'object',
-                  name:
-                    field.arrayItemType.name === 'newField'
-                      ? toPascalCase(selectedSchema.name)
-                      : field.arrayItemType.name,
-                  children: selectedSchema.structure.fields.filter(
-                    (f) => f.id !== targetFieldIdForSchema
-                  ),
-                },
-              };
-            }
-
-            return {
-              ...field,
-              type: 'object',
-              name:
-                field.name === 'newField'
-                  ? toPascalCase(selectedSchema.name)
-                  : field.name,
-              children: selectedSchema.structure.fields.filter(
-                (f) => f.id !== targetFieldIdForSchema
-              ),
-            };
-          }
-        ),
-      }));
+          prevSchema,
+          selectedSchema.structure
+        )
+      );
 
       // Close dialog and clear target field
       setSchemaSelectionDialogOpen(false);
@@ -261,22 +214,14 @@ export default function SchemaBuilder({
   }, []);
 
   const updateField = useCallback((updatedField: SchemaField) => {
-    setSchema((prev) => ({
-      ...prev,
-      fields: findAndUpdateField(
-        prev.fields,
-        updatedField.id,
-        () => updatedField
-      ),
-    }));
+    setSchema((prevSchema) =>
+      update.field(updatedField.id, updatedField, prevSchema)
+    );
     setSelectedField(updatedField);
   }, []);
 
   const removeField = useCallback((fieldId: string) => {
-    setSchema((prev) => ({
-      ...prev,
-      fields: findAndRemoveField(prev.fields, fieldId),
-    }));
+    setSchema((prevSchema) => remove.field(fieldId, prevSchema));
     setSelectedField(null);
   }, []);
 
@@ -286,23 +231,13 @@ export default function SchemaBuilder({
 
   // Simple function to add a field directly to the schema (for tree view button)
   const addFieldToTree = useCallback(() => {
-    const newField: SchemaField = {
-      id: uuidv4(),
-      name: 'newField',
-      type: 'text',
-      logic: { required: false },
-    };
-
-    setSchema((prev) => ({
-      ...prev,
-      fields: [...prev.fields, newField],
-    }));
+    setSchema(add.field);
   }, []);
 
   const generatePreview = useMemo(
     (): Record<string, unknown> =>
-      convertSchemaToJson(schema.fields, { collapsedFields, forPreview: true }),
-    [schema.fields, collapsedFields]
+      convertSchemaToJson(schema, { collapsedFields, forPreview: true }),
+    [schema, collapsedFields]
   );
 
   const renderArrayItemTree = (
@@ -361,35 +296,15 @@ export default function SchemaBuilder({
                 value={arrayItem.type}
                 onChange={(e) => {
                   const newType = e.target.value as SchemaField['type'];
-
                   if (newType === 'schema') {
                     handleSchemaSelection(arrayItem.id);
                     return;
                   }
 
-                  const updates: Partial<SchemaField> = { type: newType };
-
-                  if (newType === 'object') {
-                    updates.children = arrayItem.children || [];
-                  } else {
-                    updates.children = undefined;
-                  }
-
-                  if (newType === 'array') {
-                    updates.arrayItemType = arrayItem.arrayItemType || {
-                      id: uuidv4(),
-                      name: 'item',
-                      type: 'text',
-                      children: undefined,
-                      arrayItemType: undefined,
-                      logic: { required: false },
-                    };
-                  } else {
-                    updates.arrayItemType = undefined;
-                  }
-
-                  const updatedArrayItem = { ...arrayItem, ...updates };
-                  updateField(updatedArrayItem);
+                  // Update the schema by finding and updating this specific arrayItem
+                  setSchema((prevSchema) =>
+                    update.fieldType(arrayItem.id, newType, prevSchema)
+                  );
                 }}
                 displayEmpty
                 sx={{
@@ -420,17 +335,9 @@ export default function SchemaBuilder({
               startIcon={<AddChildIcon />}
               onClick={(e) => {
                 e.stopPropagation();
-                const newChild: SchemaField = {
-                  id: uuidv4(),
-                  name: 'newField',
-                  type: 'text',
-                  logic: { required: false },
-                };
-                const updatedArrayItem = {
-                  ...arrayItem,
-                  children: [...(arrayItem.children || []), newChild],
-                };
-                updateField(updatedArrayItem);
+                setSchema((prevSchema) =>
+                  add.objectField(arrayItem.id, prevSchema)
+                );
               }}
               sx={{
                 fontSize: '0.75rem',
@@ -594,42 +501,14 @@ export default function SchemaBuilder({
                     return;
                   }
 
-                  const updatedArrayItem = {
-                    ...arrayItem,
-                    arrayItemType: {
-                      id: arrayItem.arrayItemType?.id || uuidv4(),
-                      name: arrayItem.arrayItemType?.name || 'item',
-                      type: newItemType,
-                      children:
-                        newItemType === 'object'
-                          ? arrayItem.arrayItemType?.children || []
-                          : undefined,
-                      arrayItemType:
-                        newItemType === 'array'
-                          ? ({
-                              id: uuidv4(),
-                              name: 'item',
-                              type: 'text',
-                              children: undefined,
-                              arrayItemType: undefined,
-                              logic: { required: false },
-                            } as SchemaField)
-                          : undefined,
-                      logic: arrayItem.arrayItemType?.logic || {
-                        required: false,
-                      },
-                    } as SchemaField,
-                  };
-
                   // Update the schema by finding and updating this specific arrayItem
-                  setSchema((prev) => ({
-                    ...prev,
-                    fields: findAndUpdateField(
-                      prev.fields,
+                  setSchema((prevSchema) =>
+                    update.arrayItemFieldType(
                       arrayItem.id,
-                      () => updatedArrayItem
-                    ),
-                  }));
+                      newItemType,
+                      prevSchema
+                    )
+                  );
                 }}
                 displayEmpty
                 sx={{
@@ -757,29 +636,9 @@ export default function SchemaBuilder({
                     return;
                   }
 
-                  const updates: Partial<SchemaField> = { type: newType };
-
-                  if (newType === 'object') {
-                    updates.children = field.children || [];
-                  } else {
-                    updates.children = undefined;
-                  }
-
-                  if (newType === 'array') {
-                    updates.arrayItemType = field.arrayItemType || {
-                      id: uuidv4(),
-                      name: 'item',
-                      type: 'text',
-                      children: undefined,
-                      arrayItemType: undefined,
-                      logic: { required: false },
-                    };
-                  } else {
-                    updates.arrayItemType = undefined;
-                  }
-
-                  const updatedField = { ...field, ...updates };
-                  updateField(updatedField);
+                  setSchema((prevSchema) =>
+                    update.fieldType(field.id, newType, prevSchema)
+                  );
                 }}
                 displayEmpty
                 sx={{
@@ -812,17 +671,10 @@ export default function SchemaBuilder({
                 startIcon={<AddChildIcon />}
                 onClick={(e) => {
                   e.stopPropagation();
-                  const newChild: SchemaField = {
-                    id: uuidv4(),
-                    name: 'newField',
-                    type: 'text',
-                    logic: { required: false },
-                  };
-                  const updatedField = {
-                    ...field,
-                    children: [...(field.children || []), newChild],
-                  };
-                  updateField(updatedField);
+
+                  setSchema((prevSchema) =>
+                    add.objectField(field.id, prevSchema)
+                  );
                 }}
                 sx={{
                   fontSize: '0.7rem',
@@ -974,35 +826,13 @@ export default function SchemaBuilder({
                         return;
                       }
 
-                      const updatedArrayItem = {
-                        id: field.arrayItemType?.id || uuidv4(),
-                        name: field.arrayItemType?.name || 'item',
-                        type: newItemType,
-                        children:
-                          newItemType === 'object'
-                            ? field.arrayItemType?.children || []
-                            : undefined,
-                        arrayItemType:
-                          newItemType === 'array'
-                            ? ({
-                                id: uuidv4(),
-                                name: 'item',
-                                type: 'text',
-                                children: undefined,
-                                arrayItemType: undefined,
-                                logic: { required: false },
-                              } as SchemaField)
-                            : undefined,
-                        logic: field.arrayItemType?.logic || {
-                          required: false,
-                        },
-                      } as SchemaField;
-
-                      const updatedField = {
-                        ...field,
-                        arrayItemType: updatedArrayItem,
-                      };
-                      updateField(updatedField);
+                      setSchema((prevSchema) =>
+                        update.arrayItemFieldType(
+                          field.id,
+                          newItemType,
+                          prevSchema
+                        )
+                      );
                     }}
                     displayEmpty
                     sx={{
@@ -1035,24 +865,9 @@ export default function SchemaBuilder({
                     startIcon={<AddChildIcon />}
                     onClick={(e) => {
                       e.stopPropagation();
-                      const newChild: SchemaField = {
-                        id: uuidv4(),
-                        name: 'newField',
-                        type: 'text',
-                        logic: { required: false },
-                      };
-                      const updatedArrayItem = {
-                        ...field.arrayItemType!,
-                        children: [
-                          ...(field.arrayItemType!.children || []),
-                          newChild,
-                        ],
-                      };
-                      const updatedField = {
-                        ...field,
-                        arrayItemType: updatedArrayItem,
-                      };
-                      updateField(updatedField);
+                      setSchema((prevSchema) =>
+                        add.arrayItemObjectField(field.id, prevSchema)
+                      );
                     }}
                     sx={{
                       fontSize: '0.75rem',
@@ -1513,30 +1328,11 @@ export default function SchemaBuilder({
                       return;
                     }
 
-                    const updates: Partial<SchemaField> = { type: newType };
+                    setSchema((prevSchema) =>
+                      update.fieldType(selectedField.id, newType, prevSchema)
+                    );
 
-                    if (newType === 'object') {
-                      updates.children = selectedField.children || [];
-                    } else {
-                      updates.children = undefined;
-                    }
-
-                    if (newType === 'array') {
-                      updates.arrayItemType = selectedField.arrayItemType || {
-                        id: uuidv4(),
-                        name: 'item',
-                        type: 'text',
-                        children: undefined,
-                        arrayItemType: undefined,
-                        logic: { required: false },
-                      };
-                    } else {
-                      updates.arrayItemType = undefined;
-                    }
-
-                    const updatedField = { ...selectedField, ...updates };
-                    updateField(updatedField);
-                    setSelectedField(updatedField);
+                    setSelectedField({ ...selectedField, type: newType });
                   }}
                   label='Field Type'
                   // sx={{ backgroundColor: 'background.default' }}
@@ -1952,8 +1748,8 @@ export default function SchemaBuilder({
                       },
                     }}
                   >
-                    <CardActionArea 
-                      component="span" 
+                    <CardActionArea
+                      component='span'
                       onClick={() => handleSchemaSelected(schemaItem)}
                     >
                       <CardContent sx={{ width: '100%', height: '100%' }}>

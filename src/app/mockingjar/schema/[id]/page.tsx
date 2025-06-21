@@ -9,7 +9,7 @@ import {
   useSaveSchema,
   useUpdateSchema,
 } from '@/hooks/useSchemas';
-import { JsonSchema } from '@/types/schema';
+import { JsonSchema } from 'mockingjar-lib/dist/types/schema';
 import AppBar from '@/components/AppBar';
 
 export default function SchemaBuilderPage() {

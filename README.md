@@ -16,7 +16,9 @@
 
 ## Overview
 
-MockingJar is a modern web application that combines visual schema building with data generation, AI and advanced recovery system. Built with Next.js 15, Material UI, and Anthropic Claude, it enables developers, QA engineers, and data analysts to create complex JSON structures and generate realistic test data through natural language prompts.
+MockingJar is a modern web application that combines visual schema building with data generation, AI and advanced recovery system. Built with Next.js 15, Material UI, Anthropic Claude, and **[MockingJar Library](https://www.npmjs.com/package/mockingjar-lib)** as the core engine, it enables developers, QA engineers, and data analysts to create complex JSON structures and generate realistic test data through natural language prompts.
+
+**Project Focus**: This application is primarily a frontend project that includes backend API routes for authentication and data generation integration. The core functionality for schema management, data generation, and validation is handled by the **[mockingjar-lib](https://www.npmjs.com/package/mockingjar-lib)** package, while this project provides the visual interface and user experience.
 
 ---
 
@@ -35,7 +37,7 @@ MockingJar is a modern web application that combines visual schema building with
 - **Runtime**: Node.js with Next.js API Routes
 - **Database**: PostgreSQL with Prisma ORM
 - **Authentication**: NextAuth.js
-- **AI Integration**: Anthropic Claude SDK
+- **Core Engine**: **[MockingJar Library](https://www.npmjs.com/package/mockingjar-lib)**
 
 ### Development Tools
 - **Testing**: Jest with Testing Library for comprehensive test coverage
@@ -68,11 +70,14 @@ mockbird/
 │   ├── components/                   # React components
 │   ├── hooks/                        # Custom React hooks
 │   │   └── useSchemas.ts             # Schema management hooks
-│   ├── lib/                          # Core business logic
-│   │   └── __tests__/                # Unit tests
+│   ├── lib/                          # Application-specific utilities
+│   │   ├── auth.ts                   # Authentication utilities
+│   │   ├── db.ts                     # Database connection utilities
+│   │   └── template.ts               # UI template utilities
 │   ├── providers/                    # React context providers
 │   └── types/                        # TypeScript type definitions
-└──  README.md                        # Project documentation
+├── package.json                      # Dependencies including mockingjar-lib
+└── README.md                         # Project documentation
 ```
 
 ### Key Directories
@@ -91,21 +96,10 @@ mockbird/
 - **AppBar.tsx**: Application header with page context and actions
 - **GenerationProgress.tsx**: Real-time progress tracking for data generation
 
-#### `/src/lib/` - Core Business Logic
-- **generator.ts**: Data generation engine with error recovery and surgical fix mechanisms
-- **validation.ts**: Comprehensive JSON validation system with detailed error reporting
-- **schema.ts**: Schema manipulation and conversion utilities with field management
-- **template.ts**: Pre-built schema templates for common use cases and quick starts
-- **anthropic.ts**: AI integration layer with Anthropic Claude API
+#### `/src/lib/` - Application Utilities
 - **auth.ts**: Authentication utilities and session management
 - **db.ts**: Database connection and query utilities with Prisma integration
-
-#### Core Library Features
-- **Field Management**: Add, update, and remove fields with deep nesting support
-- **Schema Validation**: Comprehensive type checking and constraint validation  
-- **Error Recovery**: Surgical regeneration of failed fields during generation
-- **Template System**: Quick-start templates for common schema patterns
-- **Database Abstraction**: Clean database operations with type safety
+- **template.ts**: UI template utilities and pre-built schema templates
 
 #### `/src/types/` - TypeScript Definitions
 - **schema.ts**: Schema field and structure type definitions
@@ -119,16 +113,13 @@ mockbird/
 
 ## Core Features
 1. **[Advanced Schema Builder](#advanced-schema-builder)**: Visual interface for creating complex JSON structures
-2. **[Data Generation](#data-generation)**: Surgical error recovery system that preserves valid data
-3. **[Validation System](#validation-system)**: Comprehensive JSON validation engine
-4. **[User Interface](#user-interface)**: Complete application interface and navigation system
+2. **[Data Generation Interface](#data-generation-interface)**: UI for data generation with natural language prompts
 
 ### Advanced Schema Builder
 The visual schema builder provides a comprehensive interface for creating complex JSON structures:
 
 #### Visual Schema Construction
 - **Interactive Tree View**: Hierarchical field structure with expand/collapse controls
-- **Drag-and-Drop Organization**: Intuitive field reordering and structure management *(future feature)*
 - **Real-time Validation**: Immediate feedback on schema structure and constraints
 - **Auto-save Functionality**: Automatic schema saving every 5 seconds with visual indicators
 
@@ -148,7 +139,7 @@ Support for all essential data types with full constraint configuration:
 A powerful feature that enables schema composition and reuse:
 
 **Schema Field Type:**
-- Select "schema" as a field type in any dropdown menu across the interface
+- Select "schema" as a field type in any dropdown menu
 - Opens dedicated schema selection dialog with visual schema browser
 - Automatically populates field with selected schema's complete structure
 
@@ -156,7 +147,6 @@ A powerful feature that enables schema composition and reuse:
 - **Visual Browser**: Card-based interface matching main schema list design
 - **Filtering**: Current schema excluded to prevent circular references
 - **Field Inheritance**: Selected schema's fields become children of the current field
-- **Type Conversion**: Target field automatically converts to object type to contain schema structure
 
 **Schema Composition Benefits:**
 - **Maximum Reusability**: Eliminate duplication of common schema patterns
@@ -185,255 +175,13 @@ New Schema: "Customer"
 └── billingAddress (schema) → Select "Address" → Inherits all Address fields
 ```
 
-#### Schema Structure
-```typescript
-interface SchemaField {
-  id: string;
-  name: string;
-  type: 'text' | 'number' | 'boolean' | 'date' | 'email' | 'url' | 'array' | 'object' | 'schema';
-  logic?: {
-    required?: boolean;
-    minLength?: number;
-    maxLength?: number;
-    min?: number;
-    max?: number;
-    pattern?: string;
-    enum?: string[];
-    minItems?: number;
-    maxItems?: number;
-  };
-  children?: SchemaField[]; // For object type
-  arrayItemType?: SchemaField; // For array type
-  description?: string;
-}
-```
-
-### Data Generation
-Data generation with surgical error recovery:
-
-#### Generation Process
-- **Initial Generation**: Generate complete JSON structure based on schema
-- **Validation**: Comprehensive schema validation with detailed error reporting
-- **Surgical Error Recovery**: Fix only invalid fields while preserving all valid data
-- **Context Preservation**: Keep correct data intact during error correction
-- **Targeted Regeneration**: Inform the system which fields are correct and which need fixing
-
-#### Generation Features
-- **Natural Language Prompts**: Generate contextually relevant data
-- **Schema Compliance**: Adherence to defined structure and constraints
-- **Selective Error Handling**: Fix specific problems without affecting working parts
-- **Progress Tracking**: Real-time generation progress feedback
-- **Metadata**: Detailed generation statistics and field tracking
-
-#### Surgical Fix Strategy Details
-1. **Initial Generation**: Generate complete JSON structure with comprehensive prompt
-2. **Validation Phase**: Comprehensive validation against schema rules and constraints
-3. **Surgical Error Recovery**: Preserve valid data and regenerate only problematic fields
-4. **Targeted Regeneration**: Focus correction efforts on specific invalid fields with context
-
-#### Generation Result
-```typescript
-interface GenerationResult {
-  success: boolean;
-  data?: Record<string, unknown>;
-  errors?: string[];
-  progress?: GenerationProgress;
-  metadata?: {
-    totalFields: number;
-    validFields: number;
-    regeneratedFields: string[];
-    attempts: number;
-    generationTime: number;
-  };
-}
-```
-
-### Validation System
-Comprehensive JSON validation engine with:
-- **Type & Constraint Validation**: Strict checking for all field types, lengths, ranges, patterns
-- **Structure Validation**: Nested object and array structure verification  
-- **Field Detection**: Identification of missing required fields and extra unidentified fields
-- **Array Validation**: Item-level validation with error tracking
-
-```typescript
-interface ValidationError {
-  parent: string | null;
-  affectedField: string;
-  reason: string;
-  structure: SchemaField | null;
-}
-```
-
-### User Interface
-
-#### Application Architecture
-MockingJar is built as a **Single Page Application (SPA)** using Next.js 15 App Router with protected routes requiring authentication. The interface follows Material UI design principles with responsive layouts optimized for both desktop and mobile experiences.
-
-#### Authentication Flow
-- **Entry Point**: Landing page (`/`) with application overview
-- **Authentication Check**: Automatic redirect to sign-in if not authenticated
-- **Session Management**: Persistent authentication using NextAuth.js
-- **Protected Routes**: All main application features require valid session
-
-#### Main Application Pages
-
-##### 1. Landing Page (`/`)
-**Purpose**: Application introduction and entry point
-- **Features**:
-  - Next.js welcome interface with project branding
-  - Direct link to MockingJar application (`/mockingjar`)
-
-##### 2. Authentication Redirect (`/mockingjar`)
-**Purpose**: Smart routing based on authentication status
-- **Authenticated Users**: Automatically redirected to Schema Library
-- **Unauthenticated Users**: Automatically redirected to Sign In page
-- **Loading State**: Displays loading spinner during session check
-- **No Direct Content**: Acts as intelligent routing middleware
-
-##### 3. Sign In Page (`/mockingjar/auth/signin`)
-**Purpose**: User authentication and account access
-- **Features**:
-  - **Form Validation**: Email and password validation using Zod schema
-  - **Error Handling**: Clear error messages for authentication failures
-  - **Loading States**: Visual feedback during authentication process
-  - **Responsive Design**: Optimized for mobile and desktop
-  - **Security**: Secure credential handling with NextAuth.js
-- **Layout**: Centered card design with Material UI components
-- **Validation Rules**:
-  - Valid email address format required
-  - Password field mandatory
-  - Real-time form validation feedback
-
-##### 4. Schema Library (`/mockingjar/schema`)
-**Purpose**: Manage and organize saved JSON schemas
-- **Features**:
-  - **Schema List View**: Responsive grid display of all saved schemas
-  - **Create New Schema**: Quick access to schema builder with template options
-  - **Schema Management**: Edit, delete, and duplicate existing schemas
-  - **Schema Templates**: Access to pre-built schema templates for common use cases
-  - **Schema Cards**: Visual cards showing schema metadata and field counts
-  - **Schema Actions**: Context menus for schema operations
-  - **Responsive Design**: Optimal viewing on desktop, tablet, and mobile
-- **Schema Card Information**:
-  - Schema name and description
-  - Field count indicator
-  - Creation date
-  - Last modified date
-  - Quick edit access
-- **Layout**: Sidebar navigation + main content area
-- **Components**:
-  - `SchemaList` - Displays schema cards with metadata and actions
-  - `SideBar` - Navigation between application sections
-  - `AppBar` - Page title and contextual actions
-  - Template selection modal for new schema creation
-
-##### 5. Schema Builder (`/mockingjar/schema/[id]` or `/mockingjar/schema/new`)
-**Purpose**: Visual JSON schema creation and editing interface
-- **Features**:
-  - **Visual Schema Tree**: Hierarchical field structure with expand/collapse
-  - **Field Type Support**: Text, number, boolean, date, email, URL, array, object, schema
-  - **Schema References**: Select and embed existing schemas as field types
-  - **Schema Selection Dialog**: Visual schema browser with filtering (excludes current schema)
-  - **Constraint Configuration**: Required fields, length limits, patterns, enums
-  - **Nested Structures**: Full support for objects and arrays with unlimited depth
-  - **Real-time Preview**: Live JSON structure preview
-  - **Validation Feedback**: Immediate validation of schema structure
-  - **Auto-save**: Automatic saving of schema changes every 5 seconds
-  - **Export Options**: Download schema definition
-  - **Field Management**: Add, edit, delete, and reorder fields
-  - **Collapsible Tree View**: Organize complex schemas with expand/collapse controls
-- **Schema Reference Features**:
-  - **Smart Selection**: Browse existing schemas in a card-based dialog
-  - **Circular Reference Prevention**: Current schema excluded from selection
-  - **Field Inheritance**: Selected schema fields automatically become children
-  - **Visual Consistency**: Selection dialog matches main schema list design
-  - **No Action Buttons**: Clean, selection-focused interface in dialog
-- **Dynamic Routing**:
-  - `/schema/new` - Create new schema from scratch
-  - `/schema/[id]` - Edit existing schema by ID
-- **Components**:
-  - `SchemaBuilder` - Main schema editing interface
-  - Field property panels for each data type
-  - Schema selection dialog with card-based layout
-  - Field tree view with inline editing
-  - Context menus for field operations
-
-##### 6. Data Generator (`/mockingjar/generator`)
-**Purpose**: Realistic data generation with natural language prompts
-- **Features**:
-  - **Schema Selection**: Choose from saved schemas for data generation
-  - **Natural Language Prompts**: Describe desired data characteristics
-  - **Surgical Error Recovery**: Data generation with selective error correction
-  - **Progress Tracking**: Real-time generation progress feedback
-  - **Result Preview**: Formatted JSON data display with syntax highlighting
-  - **Export Controls**: Download generated data in multiple formats
-  - **Generation History**: Track previous generation attempts
-  - **Metadata Display**: Generation statistics and performance metrics
-- **Generation Process**:
-  - Schema validation before generation
-  - AI prompt processing with Anthropic Claude
-  - Error detection and surgical regeneration
-  - Final validation and result presentation
-- **Components**:
-  - `DataGenerator` - Main generation interface
-  - `GenerationProgress` - Real-time progress indicators
-  - Schema selector dropdown
-  - Prompt input with suggestion system
-
-#### Navigation System
-
-##### Sidebar Navigation
-**Persistent Navigation**: Available on all main application pages
-- **Schema Builder** (`/mockingjar/schema`) - Schema library and management
-- **Data Generator** (`/mockingjar/generator`) - Data generation interface with natural language prompts
-- **History** - Generation history and previous results *(future feature)*
-- **Settings** - User preferences and configuration *(future feature)*
-
-##### Navigation Flow
-```
-Landing (/) 
-    ↓
-Authentication Check (/mockingjar)
-    ↓
-Sign In (/auth/signin) → Schema Library (/schema)
-                              ↓
-                        ┌─────────────────┐
-                        ↓                 ↓
-            Schema Builder (/schema/[id])  Data Generator (/generator)
-                        ↓                 ↓
-                    Edit Schema      Generate Data
-                        ↓                 ↓
-                    Save & Export    Export Results
-```
-
-#### Responsive Design
-- **Desktop Experience** (1200px+)
-- **Tablet Experience** (600px - 1199px)
-- **Mobile Experience** (<600px)
-
-#### Key UI Components
-
-##### Reusable Components
-- **AppBar**: Page titles, breadcrumbs, and contextual actions
-- **SideBar**: Main navigation with active state indicators
-- **SchemaBuilder**: Complex tree-view interface for schema editing with schema reference support
-- **SchemaList**: Grid-based schema management interface with responsive cards
-- **DataGenerator**: AI generation interface with progress tracking
-- **GenerationProgress**: Real-time feedback during data generation
-- **Schema Selection Dialog**: Card-based schema browser for schema references
-
-##### Design System
-- **Material UI v7**: Consistent component library
-- **Custom Theme**: Brand-specific color palette and typography
-- **Responsive Grid Layout**: Adaptive layouts for all screen sizes
-- **Card-based Design**: Consistent card interfaces across schema lists and dialogs
-- **Interactive Components**: Hover effects, animations, and visual feedback
-- **Dark Mode Support**: System preference detection with manual toggle *(future feature)*
-- **Accessibility**: WCAG compliant focus management and screen reader support
-- **Performance**: Optimized rendering with React best practices
-
-
----
+### Data Generation Interface
+The web application provides an intuitive interface for data generation:
+- **Natural Language Prompts**: Input field for describing desired data characteristics
+- **Schema Selection**: Choose from saved schemas for data generation
+- **Progress Tracking**: Real-time visual feedback during generation process
+- **Result Display**: Formatted JSON output with syntax highlighting
+- **Export Options**: Download generated data in various formats
 
 ## Installation & Setup
 
@@ -468,6 +216,9 @@ cd mockingjar
 
 # 2. Install dependencies
 npm install
+
+# 3. Make sure you have the latest mockingjar-lib package
+npm install mockingjar-lib@latest
 
 # 3. Set up environment variables
 cp .env.example .env.local
@@ -522,23 +273,17 @@ docker run -p 3000:3000 mockingjar
 ## Testing
 
 ### Test Coverage
-Comprehensive test suite covering:
-- **Schema Tests**: Schema builder functionalities and field management
-- **Validation Tests**: Schema validation and error handling systems
-- **Generation Tests**: Data generation and surgical error recovery
-- **Schema Reference Tests**: Schema composition and circular reference prevention
-- **UI Component Tests**: Interactive components and user workflows
-
-### Key Test Files
-- `src/lib/__tests__/validation.test.ts` - Validation system tests (24 test cases)
-- `src/lib/__tests__/generator.test.ts` - Generation engine tests
-- `src/lib/__tests__/schema.test.ts` - Schema utilities and manipulation tests
+Test suite covers the web application components and integration:
+- **UI Component Tests**: React components and user workflows
+- **Integration Tests**: End-to-end workflow validation
+- **API Tests**: Backend API endpoints and database operations
+- **Authentication Tests**: User authentication and session management
 
 ### Testing Strategy
-- **Unit Tests**: Individual function and component testing
+- **Component Tests**: Individual React component testing
 - **Integration Tests**: End-to-end workflow validation
-- **Error Handling**: Edge case and error condition testing
-- **Performance Tests**: Generation speed and memory usage
+- **API Tests**: REST endpoint testing and error handling
+- **Authentication Tests**: Session management and security
 - **Accessibility Tests**: Screen reader and keyboard navigation
 - **Cross-browser Testing**: Chrome, Firefox, Safari, Edge compatibility
 
