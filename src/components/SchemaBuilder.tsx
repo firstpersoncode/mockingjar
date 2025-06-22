@@ -48,6 +48,7 @@ import { SchemaField, JsonSchema } from 'mockingjar-lib/dist/types/schema';
 import { SavedSchema } from '@/types/schema';
 import { format } from 'date-fns';
 import { useSchemas } from '@/hooks/useSchemas';
+import { createSchemaTemplates } from '@/lib/template';
 import { Schema } from 'mockingjar-lib';
 interface SchemaBuilderProps {
   updatedAt?: Date;
@@ -91,6 +92,9 @@ export default function SchemaBuilder({
 
   // Hook to get available schemas
   const { data: schemas = [], isLoading: schemasLoading } = useSchemas();
+
+  // Get available templates
+  const templates = useMemo(() => createSchemaTemplates(), []);
 
   // Local state for name editing
   const [tempName, setTempName] = useState(schema.name);
@@ -182,14 +186,24 @@ export default function SchemaBuilder({
 
   // Handler for selecting a schema from the dialog
   const handleSchemaSelected = useCallback(
-    (selectedSchema: SavedSchema) => {
+    (selectedItem: SavedSchema | { name: string; fields: SchemaField[] }) => {
       if (!targetFieldIdForSchema) return;
+
+      // Determine if it's a template or saved schema
+      const schemaStructure =
+        'structure' in selectedItem
+          ? selectedItem.structure
+          : {
+              name: selectedItem.name,
+              description: '',
+              fields: selectedItem.fields,
+            };
 
       setSchema((prevSchema) =>
         Schema.update.fieldTypeSchema(
           targetFieldIdForSchema,
           prevSchema,
-          selectedSchema.structure
+          schemaStructure
         )
       );
 
@@ -236,7 +250,10 @@ export default function SchemaBuilder({
 
   const generatePreview = useMemo(
     (): Record<string, unknown> =>
-      Schema.convert.schemaToJson(schema, { collapsedFields, forPreview: true }),
+      Schema.convert.schemaToJson(schema, {
+        collapsedFields,
+        forPreview: true,
+      }),
     [schema, collapsedFields]
   );
 
@@ -1329,7 +1346,11 @@ export default function SchemaBuilder({
                     }
 
                     setSchema((prevSchema) =>
-                      Schema.update.fieldType(selectedField.id, newType, prevSchema)
+                      Schema.update.fieldType(
+                        selectedField.id,
+                        newType,
+                        prevSchema
+                      )
                     );
 
                     setSelectedField({ ...selectedField, type: newType });
@@ -1704,10 +1725,20 @@ export default function SchemaBuilder({
         maxWidth='md'
         fullWidth
       >
-        <DialogTitle>Select Schema</DialogTitle>
+        <DialogTitle>Select Schema or Template</DialogTitle>
+        <Divider />
         <DialogContent>
+          {/* Existing Schemas Section */}
+          <Typography
+            variant='h6'
+            gutterBottom
+            sx={{ mb: 2, fontSize: '16px' }}
+          >
+            Saved Schemas
+          </Typography>
+
           {schemasLoading ? (
-            <Box display='flex' justifyContent='center' p={3}>
+            <Box display='flex' justifyContent='center' p={3} sx={{ mb: 2 }}>
               <CircularProgress />
             </Box>
           ) : schemas.filter(
@@ -1715,9 +1746,9 @@ export default function SchemaBuilder({
             ).length === 0 ? (
             <Typography
               color='text.secondary'
-              sx={{ p: 3, textAlign: 'center' }}
+              sx={{ p: 2, textAlign: 'center', fontStyle: 'italic', mb: 2 }}
             >
-              No other schemas available
+              No saved schemas available
             </Typography>
           ) : (
             <Box
@@ -1729,9 +1760,7 @@ export default function SchemaBuilder({
                   md: 'repeat(2, 1fr)',
                 },
                 gap: 2,
-                mt: 1,
-                maxHeight: '60vh',
-                overflow: 'auto',
+                mb: 2,
               }}
             >
               {schemas
@@ -1791,6 +1820,7 @@ export default function SchemaBuilder({
                             size='small'
                             variant='outlined'
                           />
+                          <Chip label='Saved' size='small' color='default' />
                         </Box>
 
                         <Typography variant='caption' color='text.secondary'>
@@ -1802,6 +1832,74 @@ export default function SchemaBuilder({
                 ))}
             </Box>
           )}
+
+          {/* Templates Section */}
+          <Typography
+            variant='h6'
+            gutterBottom
+            sx={{ mb: 2, fontSize: '16px' }}
+          >
+            Templates
+          </Typography>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: '1fr',
+                sm: 'repeat(2, 1fr)',
+                md: 'repeat(3, 1fr)',
+              },
+              gap: 2,
+              mb: 3,
+            }}
+          >
+            {Object.entries(templates).map(([key, template]) => (
+              <Card
+                key={key}
+                sx={{
+                  transition:
+                    'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: 4,
+                  },
+                }}
+              >
+                <CardActionArea
+                  component='span'
+                  onClick={() => handleSchemaSelected(template)}
+                >
+                  <CardContent>
+                    <Box
+                      display='flex'
+                      justifyContent='space-between'
+                      alignItems='flex-start'
+                      mb={1}
+                    >
+                      <Typography
+                        variant='h6'
+                        component='h2'
+                        noWrap
+                        sx={{ flexGrow: 1, mr: 1 }}
+                      >
+                        {template.name}
+                      </Typography>
+                    </Box>
+
+                    <Box display='flex' flexWrap='wrap' gap={1} mb={1}>
+                      <Chip
+                        label={`${template.fields.length} fields`}
+                        size='small'
+                        variant='outlined'
+                        color='primary'
+                      />
+                      <Chip label='Template' size='small' color='secondary' />
+                    </Box>
+                  </CardContent>
+                </CardActionArea>
+              </Card>
+            ))}
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setSchemaSelectionDialogOpen(false)}>
