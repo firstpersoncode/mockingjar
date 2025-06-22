@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import Editor from '@monaco-editor/react';
 import {
   Box,
   Typography,
@@ -139,6 +140,20 @@ export default function SchemaList() {
     try {
       // Validate JSON
       const parsedJson = JSON.parse(jsonInput);
+      
+      // Validate that JSON doesn't start with an array
+      if (Array.isArray(parsedJson)) {
+        setJsonError('JSON cannot start with an array. The root element must be an object. Arrays are allowed as field values within objects.');
+        setJsonLoading(false);
+        return;
+      }
+
+      // Validate that JSON is an object
+      if (typeof parsedJson !== 'object' || parsedJson === null) {
+        setJsonError('JSON must be an object. Primitive values (strings, numbers, booleans) are not supported as root elements.');
+        setJsonLoading(false);
+        return;
+      }
       
       // Convert JSON to schema using mockingjar-lib
       const convertedSchema = Schema.convert.jsonToSchema(parsedJson);
@@ -628,44 +643,66 @@ export default function SchemaList() {
             placeholder='Enter a name for your schema'
             sx={{ mb: 2 }}
           />
-          <TextField
-            margin='dense'
-            label='JSON Data'
-            fullWidth
-            multiline
-            rows={12}
-            variant='outlined'
-            value={jsonInput}
-            onChange={(e) => {
-              setJsonInput(e.target.value);
-              setJsonError('');
-            }}
-            placeholder='Paste your JSON here...'
+          <Typography variant='body2' color='text.secondary' sx={{ mb: 1, mt: 2 }}>
+            JSON Data
+          </Typography>
+          <Box
             sx={{
-              mt: 2,
-              '& .MuiInputBase-root': {
-                backgroundColor: theme.palette.grey[900],
-                color: theme.palette.common.white,
-                fontFamily: 'monospace',
-                fontSize: '0.875rem',
-              },
-              '& .MuiInputBase-input': {
-                color: theme.palette.common.white,
-              },
-              '& .MuiInputLabel-root': {
-                color: theme.palette.text.secondary,
-              },
-              '& .MuiOutlinedInput-notchedOutline': {
-                borderColor: theme.palette.divider,
-              },
-              '&:hover .MuiOutlinedInput-notchedOutline': {
-                borderColor: theme.palette.primary.main,
-              },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+              border: `1px solid ${theme.palette.divider}`,
+              borderRadius: 1,
+              overflow: 'hidden',
+              '&:hover': {
                 borderColor: theme.palette.primary.main,
               },
             }}
-          />
+          >
+            <Editor
+              height="300px"
+              defaultLanguage="json"
+              value={jsonInput}
+              onChange={(value) => {
+                setJsonInput(value || '');
+                setJsonError('');
+              }}
+              theme={theme.palette.mode === 'dark' ? 'vs-dark' : 'light'}
+              options={{
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                wordWrap: 'on',
+                formatOnPaste: true,
+                formatOnType: true,
+                autoIndent: 'full',
+                tabSize: 2,
+                insertSpaces: true,
+                bracketPairColorization: { enabled: true },
+                foldingStrategy: 'indentation',
+                showFoldingControls: 'always',
+                automaticLayout: true,
+                fontSize: 14,
+                fontFamily: 'Monaco, "Courier New", monospace',
+                lineNumbers: 'on',
+                renderLineHighlight: 'all',
+                cursorBlinking: 'blink',
+                cursorSmoothCaretAnimation: 'on',
+                smoothScrolling: true,
+                contextmenu: true,
+                quickSuggestions: true,
+                parameterHints: { enabled: true },
+                hover: { enabled: true },
+                folding: true,
+                links: true,
+                colorDecorators: true,
+                codeLens: false,
+                occurrencesHighlight: 'singleFile',
+                selectionHighlight: true,
+                suggest: {
+                  showMethods: true,
+                  showKeywords: true,
+                  showSnippets: true,
+                },
+              }}
+            />
+          </Box>
           {jsonError && (
             <Alert severity='error' sx={{ mt: 2 }}>
               {jsonError}
