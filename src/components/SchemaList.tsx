@@ -122,7 +122,7 @@ export default function SchemaList() {
     setJsonError('');
     setJsonDialogOpen(true);
   };
-  
+
   const handleJsonSubmit = async () => {
     if (!jsonInput.trim()) {
       setJsonError('Please enter JSON data');
@@ -140,21 +140,25 @@ export default function SchemaList() {
     try {
       // Validate JSON
       const parsedJson = JSON.parse(jsonInput);
-      
+
       // Validate that JSON doesn't start with an array
       if (Array.isArray(parsedJson)) {
-        setJsonError('JSON cannot start with an array. The root element must be an object. Arrays are allowed as field values within objects.');
+        setJsonError(
+          'JSON cannot start with an array. The root element must be an object. Arrays are allowed as field values within objects.'
+        );
         setJsonLoading(false);
         return;
       }
 
       // Validate that JSON is an object
       if (typeof parsedJson !== 'object' || parsedJson === null) {
-        setJsonError('JSON must be an object. Primitive values (strings, numbers, booleans) are not supported as root elements.');
+        setJsonError(
+          'JSON must be an object. Primitive values (strings, numbers, booleans) are not supported as root elements.'
+        );
         setJsonLoading(false);
         return;
       }
-      
+
       // Convert JSON to schema using mockingjar-lib
       const convertedSchema = Schema.convert.jsonToSchema(parsedJson);
       console.log('Converted schema:', convertedSchema);
@@ -625,9 +629,6 @@ export default function SchemaList() {
       >
         <DialogTitle>Convert JSON to Schema</DialogTitle>
         <DialogContent>
-          <Typography variant='body2' color='text.secondary' gutterBottom>
-            Paste your JSON data below and we&apos;ll automatically generate a schema for you.
-          </Typography>
           <TextField
             autoFocus
             margin='dense'
@@ -643,7 +644,12 @@ export default function SchemaList() {
             placeholder='Enter a name for your schema'
             sx={{ mb: 2 }}
           />
-          <Typography variant='body2' color='text.secondary' sx={{ mb: 1, mt: 2 }}>
+
+          <Typography
+            variant='body2'
+            color='text.secondary'
+            sx={{ mb: 1, mt: 2 }}
+          >
             JSON Data
           </Typography>
           <Box
@@ -657,8 +663,8 @@ export default function SchemaList() {
             }}
           >
             <Editor
-              height="300px"
-              defaultLanguage="json"
+              height='300px'
+              defaultLanguage='json'
               value={jsonInput}
               onChange={(value) => {
                 setJsonInput(value || '');
@@ -703,6 +709,14 @@ export default function SchemaList() {
               }}
             />
           </Box>
+          <Typography
+            sx={{ my: 1 }}
+            variant='body2'
+            color='text.secondary'
+          >
+            Paste your JSON data and we&apos;ll automatically generate a schema
+            for you.
+          </Typography>
           {jsonError && (
             <Alert severity='error' sx={{ mt: 2 }}>
               {jsonError}
@@ -714,9 +728,15 @@ export default function SchemaList() {
           <Button
             onClick={handleJsonSubmit}
             variant='contained'
-            disabled={!jsonInput.trim() || !jsonSchemaName.trim() || jsonLoading}
+            disabled={
+              !jsonInput.trim() || !jsonSchemaName.trim() || jsonLoading
+            }
           >
-            {jsonLoading ? <CircularProgress size={24} /> : 'Convert & Create Schema'}
+            {jsonLoading ? (
+              <CircularProgress size={24} />
+            ) : (
+              'Convert & Create Schema'
+            )}
           </Button>
         </DialogActions>
       </Dialog>
