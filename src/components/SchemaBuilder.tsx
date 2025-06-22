@@ -48,7 +48,7 @@ import { SchemaField, JsonSchema } from 'mockingjar-lib/dist/types/schema';
 import { SavedSchema } from '@/types/schema';
 import { format } from 'date-fns';
 import { useSchemas } from '@/hooks/useSchemas';
-import { add, convertSchemaToJson, remove, update } from 'mockingjar-lib';
+import { Schema } from 'mockingjar-lib';
 interface SchemaBuilderProps {
   updatedAt?: Date;
   schemaId?: string; // Optional schema ID, defaults to "new" for new schemas
@@ -186,7 +186,7 @@ export default function SchemaBuilder({
       if (!targetFieldIdForSchema) return;
 
       setSchema((prevSchema) =>
-        update.fieldTypeSchema(
+        Schema.update.fieldTypeSchema(
           targetFieldIdForSchema,
           prevSchema,
           selectedSchema.structure
@@ -215,13 +215,13 @@ export default function SchemaBuilder({
 
   const updateField = useCallback((updatedField: SchemaField) => {
     setSchema((prevSchema) =>
-      update.field(updatedField.id, updatedField, prevSchema)
+      Schema.update.field(updatedField.id, updatedField, prevSchema)
     );
     setSelectedField(updatedField);
   }, []);
 
   const removeField = useCallback((fieldId: string) => {
-    setSchema((prevSchema) => remove.field(fieldId, prevSchema));
+    setSchema((prevSchema) => Schema.delete.field(fieldId, prevSchema));
     setSelectedField(null);
   }, []);
 
@@ -231,12 +231,12 @@ export default function SchemaBuilder({
 
   // Simple function to add a field directly to the schema (for tree view button)
   const addFieldToTree = useCallback(() => {
-    setSchema(add.field);
+    setSchema(Schema.add.field);
   }, []);
 
   const generatePreview = useMemo(
     (): Record<string, unknown> =>
-      convertSchemaToJson(schema, { collapsedFields, forPreview: true }),
+      Schema.convert.schemaToJson(schema, { collapsedFields, forPreview: true }),
     [schema, collapsedFields]
   );
 
@@ -303,7 +303,7 @@ export default function SchemaBuilder({
 
                   // Update the schema by finding and updating this specific arrayItem
                   setSchema((prevSchema) =>
-                    update.fieldType(arrayItem.id, newType, prevSchema)
+                    Schema.update.fieldType(arrayItem.id, newType, prevSchema)
                   );
                 }}
                 displayEmpty
@@ -336,7 +336,7 @@ export default function SchemaBuilder({
               onClick={(e) => {
                 e.stopPropagation();
                 setSchema((prevSchema) =>
-                  add.objectField(arrayItem.id, prevSchema)
+                  Schema.add.objectField(arrayItem.id, prevSchema)
                 );
               }}
               sx={{
@@ -503,7 +503,7 @@ export default function SchemaBuilder({
 
                   // Update the schema by finding and updating this specific arrayItem
                   setSchema((prevSchema) =>
-                    update.arrayItemFieldType(
+                    Schema.update.arrayItemFieldType(
                       arrayItem.id,
                       newItemType,
                       prevSchema
@@ -637,7 +637,7 @@ export default function SchemaBuilder({
                   }
 
                   setSchema((prevSchema) =>
-                    update.fieldType(field.id, newType, prevSchema)
+                    Schema.update.fieldType(field.id, newType, prevSchema)
                   );
                 }}
                 displayEmpty
@@ -673,7 +673,7 @@ export default function SchemaBuilder({
                   e.stopPropagation();
 
                   setSchema((prevSchema) =>
-                    add.objectField(field.id, prevSchema)
+                    Schema.add.objectField(field.id, prevSchema)
                   );
                 }}
                 sx={{
@@ -827,7 +827,7 @@ export default function SchemaBuilder({
                       }
 
                       setSchema((prevSchema) =>
-                        update.arrayItemFieldType(
+                        Schema.update.arrayItemFieldType(
                           field.id,
                           newItemType,
                           prevSchema
@@ -866,7 +866,7 @@ export default function SchemaBuilder({
                     onClick={(e) => {
                       e.stopPropagation();
                       setSchema((prevSchema) =>
-                        add.arrayItemObjectField(field.id, prevSchema)
+                        Schema.add.arrayItemObjectField(field.id, prevSchema)
                       );
                     }}
                     sx={{
@@ -1329,7 +1329,7 @@ export default function SchemaBuilder({
                     }
 
                     setSchema((prevSchema) =>
-                      update.fieldType(selectedField.id, newType, prevSchema)
+                      Schema.update.fieldType(selectedField.id, newType, prevSchema)
                     );
 
                     setSelectedField({ ...selectedField, type: newType });

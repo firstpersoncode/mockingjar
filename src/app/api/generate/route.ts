@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { generateJsonData } from 'mockingjar-lib';
+import { Generator } from 'mockingjar-lib';
 import { GenerateDataParams } from 'mockingjar-lib/dist/types/generation';
 
 export async function POST(request: NextRequest) {
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate data using hybrid strategy
-    const result = await generateJsonData(
+    const result = await Generator.generate(
       process.env.ANTHROPIC_API_KEY!,
       schema,
       prompt,

@@ -31,7 +31,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSchemas, useGenerateData } from '@/hooks/useSchemas';
-import { convertSchemaToJson } from 'mockingjar-lib';
+import { Schema } from 'mockingjar-lib';
 import { GenerationResultMetadata } from 'mockingjar-lib/dist/types/generation';
 
 const generateSchema = z.object({
@@ -76,7 +76,7 @@ export default function DataGenerator() {
   const generatePreview = useMemo(
     (): Record<string, unknown> =>
       selectedSchema?.structure?.fields
-        ? convertSchemaToJson(selectedSchema.structure, {
+        ? Schema.convert.schemaToJson(selectedSchema.structure, {
             forPreview: true,
           })
         : {},

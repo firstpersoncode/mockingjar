@@ -22,7 +22,7 @@
     "@tanstack/react-query": "^5.80.7",
     "@tanstack/react-query-devtools": "^5.80.7",
     "date-fns": "^4.1.0",
-    "mockingjar-lib": "^1.0.8",
+    "mockingjar-lib": "^1.1.4",
     "next": "15.3.3",
     "next-auth": "^4.24.11",
     "prisma": "^6.9.0",
