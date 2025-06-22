@@ -6,11 +6,12 @@
 2. **[Technology Stack](#technology-stack)**
 3. **[Project Structure](#project-structure)**
 4. **[Core Features](#core-features)**
-5. **[Installation & Setup](#installation--setup)**
-6. **[Testing](#testing)**
-7. **[Contributing](#contributing)**
-8. **[MIT License](#mit-license)**
-9. **[Support](#support)**
+5. **[Security Implementation](#security-implementation)**
+6. **[Installation & Setup](#installation--setup)**
+7. **[Testing](#testing)**
+8. **[Contributing](#contributing)**
+9. **[MIT License](#mit-license)**
+10. **[Support](#support)**
 
 ---
 
@@ -198,6 +199,70 @@ Comprehensive schema organization and management:
 - **Metadata Tracking**: Creation and modification timestamps
 - **Data Persistence**: PostgreSQL database with Prisma ORM
 
+---
+
+## Security Implementation
+
+MockingJar implements a comprehensive, multi-layered security architecture that protects user data and prevents unauthorized access. The security system combines session-based authentication with CSRF protection to ensure all API operations are secure.
+
+### 🔒 Security Architecture
+
+#### Multi-Layer Protection System
+1. **Edge Middleware**: First line of defense at the request level
+2. **Session Authentication**: Database-backed user session validation
+3. **CSRF Protection**: Token-based protection against cross-site request forgery
+4. **API Route Guards**: Granular protection for each endpoint
+
+#### Core Security Components
+
+**Authentication Layer:**
+- **NextAuth.js Integration**: Industry-standard authentication with Google OAuth
+- **Database Sessions**: Persistent sessions stored in PostgreSQL for security and scalability
+- **JWT Tokens**: Secure token handling with automatic refresh
+- **Session Validation**: Real-time session verification on every protected request
+
+**CSRF Protection:**
+- **Token Generation**: Cryptographically secure CSRF tokens for each session
+- **Double Submit Pattern**: Tokens validated in both cookies and headers
+- **Automatic Integration**: Frontend utilities handle token management transparently
+- **State-Change Protection**: CSRF validation on POST, PUT, DELETE, and PATCH operations
+
+**Middleware Protection:**
+- **Edge-Level Security**: Authentication checks before requests reach application logic
+- **Automatic Redirects**: Seamless user experience with callback URL preservation
+- **Route-Based Logic**: Different protection levels for API routes vs. application pages
+- **Performance Optimized**: Minimal overhead with intelligent request filtering
+
+#### Page Protection
+- **Protected Routes**: All `/mockingjar/*` pages require authentication
+- **Automatic Redirects**: Unauthenticated users redirected to signin with callback URLs
+- **Session Persistence**: Login state maintained across browser sessions
+
+### 🔧 Security Configuration
+
+#### Environment Variables
+```bash
+# Authentication Security
+NEXTAUTH_SECRET="your-secure-nextauth-secret-key"
+CSRF_SECRET="your-secure-csrf-secret-key"
+
+# Production Security
+NEXTAUTH_URL="https://yourdomain.com"
+NODE_ENV="production"
+```
+
+#### Security Best Practices Implemented
+- **HTTPS Enforcement**: Secure cookies in production environments
+- **SameSite Cookies**: Protection against cross-site request forgery
+- **HTTP-Only Cookies**: Prevention of XSS token theft
+- **Secure Token Generation**: Cryptographically random secrets
+- **Session Isolation**: User data access restricted to authenticated user only
+- **Input Validation**: Comprehensive request validation and sanitization
+
+For detailed security implementation information, see [SECURITY.md](./SECURITY.md).
+
+---
+
 ## Installation & Setup
 
 ### Prerequisites
@@ -215,6 +280,9 @@ DATABASE_URL="postgresql://username:password@localhost:5432/mockingjar"
 # Authentication Configuration
 NEXTAUTH_SECRET="your-secret-key-minimum-32-characters"
 NEXTAUTH_URL="http://localhost:3000"
+
+# Security Configuration (Required)
+CSRF_SECRET="your-secure-csrf-secret-key"
 
 # Google OAuth Configuration (Required)
 GOOGLE_CLIENT_ID="your-google-client-id"
