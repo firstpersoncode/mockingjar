@@ -233,7 +233,7 @@ export default function DataGenerator() {
                   label='Number of Records'
                   margin='normal'
                   error={!!errors.count}
-                  helperText={errors.count?.message || 'Generate 1-5 records'}
+                  helperText={errors.count?.message || 'For now the maximum generation would be 5 records per request, until someone willing to invest this project, then we can increase this limit. :)'}
                   onChange={(e) => {
                     let value = e.target.value;
                     if (value && parseInt(value) <= 0) {
