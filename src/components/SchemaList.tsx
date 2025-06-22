@@ -31,9 +31,11 @@ import {
   MoreVert as MoreVertIcon,
   Schema as SchemaIcon,
   KeyboardArrowDown as ArrowDownIcon,
+  Transform as TransformIcon,
 } from '@mui/icons-material';
 import { useSchemas, useSaveSchema, useDeleteSchema } from '@/hooks/useSchemas';
 import { JsonSchema, SchemaField } from 'mockingjar-lib/dist/types/schema';
+import { Schema } from 'mockingjar-lib';
 import { createSchemaTemplates } from '@/lib/template';
 
 export default function SchemaList() {
@@ -57,6 +59,13 @@ export default function SchemaList() {
 
   // Template selection dialog state
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+
+  // JSON conversion dialog state
+  const [jsonDialogOpen, setJsonDialogOpen] = useState(false);
+  const [jsonInput, setJsonInput] = useState('');
+  const [jsonSchemaName, setJsonSchemaName] = useState('');
+  const [jsonError, setJsonError] = useState('');
+  const [jsonLoading, setJsonLoading] = useState(false);
 
   // Delete confirmation state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -103,6 +112,62 @@ export default function SchemaList() {
   const handleCreateFromTemplate = () => {
     handleCreateDropdownClose();
     setTemplateDialogOpen(true);
+  };
+
+  const handleCreateFromJson = () => {
+    handleCreateDropdownClose();
+    setJsonInput('');
+    setJsonSchemaName('');
+    setJsonError('');
+    setJsonDialogOpen(true);
+  };
+  
+  const handleJsonSubmit = async () => {
+    if (!jsonInput.trim()) {
+      setJsonError('Please enter JSON data');
+      return;
+    }
+
+    if (!jsonSchemaName.trim()) {
+      setJsonError('Please enter a schema name');
+      return;
+    }
+
+    setJsonLoading(true);
+    setJsonError('');
+
+    try {
+      // Validate JSON
+      const parsedJson = JSON.parse(jsonInput);
+      
+      // Convert JSON to schema using mockingjar-lib
+      const convertedSchema = Schema.convert.jsonToSchema(parsedJson);
+      console.log('Converted schema:', convertedSchema);
+
+      // Create schema from converted data
+      const newSchema: JsonSchema = {
+        name: jsonSchemaName.trim(),
+        description: 'Generated from JSON data',
+        fields: convertedSchema.fields as SchemaField[],
+      };
+
+      const result = await saveSchema.mutateAsync(newSchema);
+      setJsonDialogOpen(false);
+      setJsonInput('');
+      setJsonSchemaName('');
+      setJsonError('');
+      // Navigate to the new schema builder
+      router.push(`/mockingjar/schema/${result.id}`);
+    } catch (error) {
+      if (error instanceof SyntaxError) {
+        setJsonError('Invalid JSON format. Please check your JSON syntax.');
+      } else {
+        setJsonError('Failed to convert JSON to schema. Please try again.');
+        console.error('JSON conversion error:', error);
+      }
+    } finally {
+      setJsonLoading(false);
+    }
   };
 
   const handleTemplateSelect = async (
@@ -357,6 +422,10 @@ export default function SchemaList() {
           <SchemaIcon sx={{ mr: 1 }} />
           From Template
         </MenuItem>
+        <MenuItem onClick={handleCreateFromJson}>
+          <TransformIcon sx={{ mr: 1 }} />
+          Convert JSON
+        </MenuItem>
       </Menu>
 
       {/* Template Selection Dialog */}
@@ -528,6 +597,89 @@ export default function SchemaList() {
             disabled={deleteSchema.isPending}
           >
             {deleteSchema.isPending ? <CircularProgress size={24} /> : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* JSON Conversion Dialog */}
+      <Dialog
+        open={jsonDialogOpen}
+        onClose={() => setJsonDialogOpen(false)}
+        maxWidth='md'
+        fullWidth
+      >
+        <DialogTitle>Convert JSON to Schema</DialogTitle>
+        <DialogContent>
+          <Typography variant='body2' color='text.secondary' gutterBottom>
+            Paste your JSON data below and we&apos;ll automatically generate a schema for you.
+          </Typography>
+          <TextField
+            autoFocus
+            margin='dense'
+            label='Schema Name'
+            fullWidth
+            variant='outlined'
+            required
+            value={jsonSchemaName}
+            onChange={(e) => {
+              setJsonSchemaName(e.target.value);
+              setJsonError('');
+            }}
+            placeholder='Enter a name for your schema'
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            margin='dense'
+            label='JSON Data'
+            fullWidth
+            multiline
+            rows={12}
+            variant='outlined'
+            value={jsonInput}
+            onChange={(e) => {
+              setJsonInput(e.target.value);
+              setJsonError('');
+            }}
+            placeholder='Paste your JSON here...'
+            sx={{
+              mt: 2,
+              '& .MuiInputBase-root': {
+                backgroundColor: theme.palette.grey[900],
+                color: theme.palette.common.white,
+                fontFamily: 'monospace',
+                fontSize: '0.875rem',
+              },
+              '& .MuiInputBase-input': {
+                color: theme.palette.common.white,
+              },
+              '& .MuiInputLabel-root': {
+                color: theme.palette.text.secondary,
+              },
+              '& .MuiOutlinedInput-notchedOutline': {
+                borderColor: theme.palette.divider,
+              },
+              '&:hover .MuiOutlinedInput-notchedOutline': {
+                borderColor: theme.palette.primary.main,
+              },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                borderColor: theme.palette.primary.main,
+              },
+            }}
+          />
+          {jsonError && (
+            <Alert severity='error' sx={{ mt: 2 }}>
+              {jsonError}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setJsonDialogOpen(false)}>Cancel</Button>
+          <Button
+            onClick={handleJsonSubmit}
+            variant='contained'
+            disabled={!jsonInput.trim() || !jsonSchemaName.trim() || jsonLoading}
+          >
+            {jsonLoading ? <CircularProgress size={24} /> : 'Convert & Create Schema'}
           </Button>
         </DialogActions>
       </Dialog>
