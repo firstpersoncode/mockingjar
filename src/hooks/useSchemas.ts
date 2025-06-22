@@ -1,14 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { JsonSchema } from 'mockingjar-lib/dist/types/schema';
-import { GenerateDataParams, GenerationResult } from 'mockingjar-lib/dist/types/generation';
+import {
+  GenerateDataParams,
+  GenerationResult,
+} from 'mockingjar-lib/dist/types/generation';
 import { SavedSchema } from '@/types/schema';
-
+import { protectedFetch } from '@/lib/protected-fetch';
 
 export function useSchemas() {
   return useQuery({
     queryKey: ['schemas'],
     queryFn: async (): Promise<SavedSchema[]> => {
-      const response = await fetch('/api/schemas');
+      const response = await protectedFetch('/api/schemas');
       if (!response.ok) throw new Error('Failed to fetch schemas');
       return response.json();
     },
@@ -19,7 +22,7 @@ export function useGetSchema(id: string) {
   return useQuery({
     queryKey: ['schemas', id],
     queryFn: async (): Promise<SavedSchema> => {
-      const response = await fetch(`/api/schemas/${id}`);
+      const response = await protectedFetch(`/api/schemas/${id}`);
       if (!response.ok) throw new Error('Failed to fetch schema');
       return response.json();
     },
@@ -32,7 +35,7 @@ export function useSaveSchema() {
 
   return useMutation({
     mutationFn: async (schema: JsonSchema) => {
-      const response = await fetch('/api/schemas', {
+      const response = await protectedFetch('/api/schemas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(schema),
@@ -51,7 +54,7 @@ export function useUpdateSchema() {
 
   return useMutation({
     mutationFn: async ({ id, schema }: { id: string; schema: JsonSchema }) => {
-      const response = await fetch(`/api/schemas/${id}`, {
+      const response = await protectedFetch(`/api/schemas/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(schema),
@@ -70,7 +73,7 @@ export function useDeleteSchema() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`/api/schemas/${id}`, {
+      const response = await protectedFetch(`/api/schemas/${id}`, {
         method: 'DELETE',
       });
       if (!response.ok) throw new Error('Failed to delete schema');
@@ -89,7 +92,7 @@ export function useGenerateData() {
       prompt,
       count,
     }: GenerateDataParams): Promise<GenerationResult> => {
-      const response = await fetch('/api/generate', {
+      const response = await protectedFetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ schema, prompt, count }),

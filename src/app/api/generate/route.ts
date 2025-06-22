@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { validateSessionAndCSRF } from '@/lib/api-protection';
 import { Generator } from 'mockingjar-lib';
 import { GenerateDataParams } from 'mockingjar-lib/dist/types/generation';
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const validation = await validateSessionAndCSRF(request);
+    if (!validation.isValid) {
+      return validation.response;
     }
 
     const { schema, prompt, count }: GenerateDataParams = await request.json();

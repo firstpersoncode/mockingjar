@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { validateSession, validateSessionAndCSRF } from '@/lib/api-protection';
 import { prisma } from '@/lib/db';
 import { JsonSchema } from 'mockingjar-lib/dist/types/schema';
 
@@ -9,10 +8,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const validation = await validateSession();
+    if (!validation.isValid) {
+      return validation.response;
     }
 
     const { id: schemaId } = await params;
@@ -20,7 +18,7 @@ export async function GET(
     const schema = await prisma.schema.findFirst({
       where: {
         id: schemaId,
-        userId: session.user.id,
+        userId: validation.userId!,
       },
     });
 
@@ -43,10 +41,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const validation = await validateSessionAndCSRF(request);
+    if (!validation.isValid) {
+      return validation.response;
     }
 
     const { id: schemaId } = await params;
@@ -56,7 +53,7 @@ export async function PUT(
     const schema = await prisma.schema.updateMany({
       where: {
         id: schemaId,
-        userId: session.user.id,
+        userId: validation.userId!,
       },
       data: {
         name: body.name,
@@ -84,10 +81,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const validation = await validateSessionAndCSRF(request);
+    if (!validation.isValid) {
+      return validation.response;
     }
 
     const { id: schemaId } = await params;
@@ -95,7 +91,7 @@ export async function DELETE(
     const schema = await prisma.schema.deleteMany({
       where: {
         id: schemaId,
-        userId: session.user.id,
+        userId: validation.userId!,
       },
     });
 
