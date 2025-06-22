@@ -243,7 +243,7 @@ export default function DataGenerator() {
                       value = '5';
                     }
 
-                    field.onChange(parseInt(value, 5));
+                    field.onChange(parseInt(value));
                   }}
                 />
               )}
